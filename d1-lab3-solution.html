@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 3 solution, rules become checks</title>
+<link rel="stylesheet" href="handout.css">
+<script>
+/* Marks the page as script-enabled so the chooser shows. With scripts off, every variant stays visible. */
+document.documentElement.className += " js";
+</script>
+</head>
+<body>
+<main class="page">
+
+<header class="doc-head">
+  <p class="kicker">Day 1 solution</p>
+  <h1>Lab 3 solution, rules become checks</h1>
+  <ul class="meta">
+    <li>Solution to lab 3</li>
+  </ul>
+</header>
+
+<p>This is the solution to lab 3. The lab guide is Lab 3, rules become checks. Each section has the number of the step in the guide.</p>
+
+<form class="chooser" id="chooser" aria-label="Show only my agent and stack">
+  <fieldset>
+    <legend>Agent</legend>
+    <label><input type="radio" name="agent" value="both" checked> Both</label>
+    <label><input type="radio" name="agent" value="claude"> Claude Code</label>
+    <label><input type="radio" name="agent" value="copilot"> GitHub Copilot</label>
+  </fieldset>
+  <fieldset>
+    <legend>Stack</legend>
+    <label><input type="radio" name="stack" value="both" checked> Both</label>
+    <label><input type="radio" name="stack" value="python"> Python</label>
+    <label><input type="radio" name="stack" value="dotnet"> .NET</label>
+  </fieldset>
+</form>
+
+<h2>Step 1. Part 1, the lint rule and its list</h2>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p><code>requirements-dev.txt</code> gains <code>ruff==0.17.*</code>. <code>pyproject.toml</code> gains the rule.</p>
+<pre class="cmd"><code>[tool.ruff]
+extend-exclude = ["vendor", "src/generated"]
+
+[tool.ruff.lint]
+select = ["TID251"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"datetime.datetime.strptime".msg = "Feed dates are DD/MM/YYYY. Use scheme_common.dates.parse_uk_date."
+"time.strptime".msg = "Feed dates are DD/MM/YYYY. Use scheme_common.dates.parse_uk_date."</code></pre>
+    <p class="note"><code>python -m ruff check .</code> ends with <code>Found 20 errors.</code> They are in 8 files: 8 in <code>pipeline</code> and <code>src</code>, 4 in <code>tools/peek_feed.py</code> and 8 in <code>tests/unit</code>.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p><code>Directory.Packages.props</code> gains the package. <code>Directory.Build.props</code> adds it to every project but <code>Scheme.Common</code>.</p>
+<pre class="cmd"><code>&lt;PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" /&gt;</code></pre>
+<pre class="cmd"><code>&lt;ItemGroup Condition="'$(MSBuildProjectName)' != 'Scheme.Common'"&gt;
+  &lt;PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" /&gt;
+  &lt;AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" /&gt;
+&lt;/ItemGroup&gt;</code></pre>
+    <p>The root <code>BannedSymbols.txt</code> has 25 lines, one for each string overload. Two of them:</p>
+<pre class="cmd"><code>M:System.DateOnly.Parse(System.String);Feed dates go through Scheme.Common.Dates.UkDate
+M:System.DateTime.ParseExact(System.String,System.String,System.IFormatProvider);Feed dates go through Scheme.Common.Dates.UkDate</code></pre>
+    <p class="note">The listing build ends with <code>20 Warning(s)</code> and <code>0 Error(s)</code>. They are rule <code>RS0030</code>, in three reports and four test files.</p>
+  </div>
+</div>
+
+<h2>Step 2. Fix all 20 in one pass</h2>
+<p>Each banned call becomes a call to the helper that the rule's message names. No warning is turned off.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+<pre class="cmd"><code>- type=lambda text: datetime.strptime(text, "%d/%m/%Y").date()
++ type=lambda text: parse_uk_date(text)</code></pre>
+    <p class="note"><code>python -m ruff check .</code> prints <code>All checks passed!</code> and the check ends with <code>0</code>.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+<pre class="cmd"><code>- DateOnly.ParseExact(m.DateJoined, "dd/MM/yyyy", CultureInfo.InvariantCulture)
++ UkDate.Parse(m.DateJoined)</code></pre>
+    <p class="note">The listing build shows no warning, and the check ends with <code>0</code>. <code>TryParse</code> calls become <code>UkDate.TryParse</code>.</p>
+  </div>
+</div>
+<p><code>git status --short</code> shows changed code and test files. Nothing is committed yet.</p>
+
+<h2>Step 3. Part 2, the pre-commit hook</h2>
+<p><code>.githooks/pre-commit</code> has two lines.</p>
+<pre class="cmd"><code>#!/bin/sh
+exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pre-commit.ps1</code></pre>
+<p><code>scripts/pre-commit.ps1</code> checks the staged files only and exits at once when none is staged. These are the lines that do the work.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+<pre class="cmd"><code>$python = @(git diff --cached --name-only --diff-filter=ACM | Where-Object { $_ -like "*.py" })
+if ($python.Count -eq 0) { exit 0 }
+
+python -m ruff check --force-exclude @python
+exit $LASTEXITCODE</code></pre>
+    <p><code>scripts\check.ps1</code> gains <code>Step "ruff" { python -m ruff check . }</code> before the tests.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+<pre class="cmd"><code>$code = @(git diff --cached --name-only --diff-filter=ACM -- '*.cs')
+if ($code.Count -eq 0) { exit 0 }
+
+&amp; dotnet format whitespace --folder --verify-no-changes --include @code
+if ($LASTEXITCODE -ne 0) {
+    Write-Host 'Layout does not match .editorconfig. Fix it with: dotnet format whitespace --folder --include &lt;files&gt;'
+    exit 1
+}
+exit 0</code></pre>
+  </div>
+</div>
+
+<h2>Step 4. Turn the hook on, commit and time it</h2>
+<pre class="cmd"><code>git config core.hooksPath</code></pre>
+<p class="note">It prints <code>.githooks</code>.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p class="note">The commit prints <code>All checks passed!</code> from the hook. Test runs took 0.6 to 3.2 seconds, by machine load. Over 3 seconds, the Ruff check leaves the hook, because <code>scripts\check.ps1</code> runs it, and the hook keeps only <code>git diff --cached --check</code>.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p class="note">Test runs took 2 to 6 seconds, by machine load. Over 3 seconds, the layout check moves into <code>scripts\check.ps1</code> and the hook keeps only <code>git diff --cached --check</code>, which takes under a second.</p>
+  </div>
+</div>
+<p>Good enough: a time under 3 seconds on your paper, or the move done and the time written down.</p>
+
+<h2>Step 5. The CI workflow</h2>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+<pre class="cmd"><code>name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install
+        run: pip install -r requirements-dev.txt
+      - name: Check
+        shell: pwsh
+        run: .\scripts\check.ps1 -Spark</code></pre>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+<pre class="cmd"><code>name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build and run the fast tests
+        shell: pwsh
+        run: ./scripts/check.ps1</code></pre>
+  </div>
+</div>
+<p>Your agent may pick other action versions or add a step. The bar is one job named <code>check</code> that runs <code>scripts\check.ps1</code>. On route C, <code>.githooks/pre-push</code> has the same two lines as the pre-commit hook, with <code>scripts/check.ps1</code> as the file.</p>
+
+<h2>Step 6. Part 3, codebase-design on one module</h2>
+<p>The reference answer is deep, for both modules. Nothing in the repo changes, so <code>git status --short</code> prints nothing new.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p><code>vendor/scheme_common/dates.py</code> is deep. The working day rules and the strict parse sit behind a few calls.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p><code>vendor/Scheme.Common/Dates</code> is deep. It holds one file, <code>UkDate.cs</code>, with a small interface over the date rules.</p>
+  </div>
+</div>
+<p>The skill uses words such as locality, the deletion test and the seam. It may also list public names that no code calls. Your line is good enough if it names the module and the verdict with one reason. A verdict of shallow with a reason meets the bar too.</p>
+
+<h2>Step 7. Part 4, the boundary check</h2>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p><code>requirements-dev.txt</code> gains <code>import-linter==2.*</code>. The contract from the guide is at the end of <code>pyproject.toml</code>, with one new line after the last <code>]</code>.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p><code>Directory.Packages.props</code> gains <code>NetArchTest.Rules</code> 1.3.2, and the unit test project gains a <code>PackageReference</code> to it. <code>ArchitectureTests.cs</code> holds the contract from the guide.</p>
+  </div>
+</div>
+
+<h2>Step 8. Two breaks, one recorded and one fixed</h2>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p class="note">The first run ends with <code>Contracts: 0 kept, 1 broken.</code> and lists two imports, in either order: <code>feeds._reader -&gt; pipeline.settings</code> and <code>valuation_extract._eligibility -&gt; employer_reports.formatting</code>.</p>
+    <p>The known break goes under the contract with a reason in words.</p>
+<pre class="cmd"><code># Known break. feeds._reader still reads STRICT_SCHEMA from the jobs package.
+# That is a known problem to fix in its own change.
+ignore_imports = ["feeds._reader -&gt; pipeline.settings"]</code></pre>
+    <p>The other break is fixed in <code>_eligibility.py</code>. It formats the date with <code>scheme_common.dates.format_uk_date</code> in place of <code>employer_reports.formatting.uk_date</code>. <code>scripts\check.ps1</code> gains <code>Step "import boundaries" { lint-imports }</code>. It already sets <code>PYTHONPATH</code> at the top.</p>
+    <p class="note">The run then prints <code>Imports point downwards KEPT (1 ignored import)</code> and <code>Contracts: 1 kept, 0 broken.</code></p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p class="note">The first run shows <code>Failed: 2, Passed: 4</code>. The failing types are <code>MemberIngestion.Feeds.MemberFeedReader</code> and <code>MemberIngestion.Ingestion.IngestSummary</code>.</p>
+    <p>The known break goes in <code>Known</code> with a reason in words.</p>
+<pre class="cmd"><code>static readonly string[] Known = [
+    // MemberFeedReader reads the
+    // ingestion options to get
+    // StrictSchema. That is a
+    // known problem, to fix in its
+    // own change.
+    "MemberIngestion.Feeds.MemberFeedReader -&gt; Ingestion",
+];</code></pre>
+    <p>The other break is fixed in <code>MemberFileIngestor.cs</code>. <code>IngestSummary</code> loses its <code>ToString</code> override, which called <code>IngestReport</code> in <code>Reports</code>, and the file loses <code>using MemberIngestion.Reports;</code>.</p>
+    <p class="note">The six rows pass. The check shows <code>Passed: 80</code> for the unit tests and <code>Passed: 11</code> for the module tests.</p>
+  </div>
+</div>
+<p>The comment names no issue number. Good enough: any reason in words that says the break is known and is fixed in its own change.</p>
+
+<h2>The artefact you leave in the repo</h2>
+<ul>
+  <li>The banned-API rule, in <code>pyproject.toml</code> or in <code>BannedSymbols.txt</code> with the two props files.</li>
+  <li><code>.githooks/pre-commit</code> and <code>scripts/pre-commit.ps1</code>.</li>
+  <li><code>.github/workflows/ci.yml</code>, or <code>.githooks/pre-push</code> on route C.</li>
+  <li>The boundary check, in <code>pyproject.toml</code> or in <code>ArchitectureTests.cs</code>, run by the check command.</li>
+</ul>
+
+<h2>Done check</h2>
+<div class="done-check">
+  <pre class="cmd"><code>powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE; git config core.hooksPath</code></pre>
+  <p class="note">The last two lines are <code>0</code> and <code>.githooks</code>.</p>
+  <pre class="cmd"><code>git log origin/main --oneline -- .github/workflows/ci.yml</code></pre>
+  <p class="note">Routes A and B: one line, <code>Add the CI workflow</code>.</p>
+  <pre class="cmd"><code>git log --oneline -- .github/workflows/ci.yml; Test-Path .githooks\pre-push</code></pre>
+  <p class="note">Route C: one line, then <code>True</code>.</p>
+  <p>Why it passes. The check runs the date rule, the boundary check and the tests, and all three pass after the fixes. The hook path is set in this clone. The workflow was committed once, and on routes A and B it was pushed, so <code>origin/main</code> holds it.</p>
+</div>
+
+</main>
+
+<script>
+/* Lets the learner hide the agent and the stack they do not use, and remembers the choice. */
+(function () {
+  var root = document.documentElement;
+  var key = "handout-choice";
+  var form = document.getElementById("chooser");
+  if (!form) { return; }
+  var all = ["claude", "copilot", "python", "dotnet"];
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { return {}; }
+  }
+  function save(c) {
+    try { localStorage.setItem(key, JSON.stringify(c)); } catch (e) { /* storage may be blocked */ }
+  }
+  /* A URL such as ?stack=python or ?agent=claude sets the starting choice. It wins over the stored choice. */
+  function param(name, values) {
+    var v = (new RegExp("[?&]" + name + "=([^&#]*)").exec(location.search) || [])[1];
+    return values.indexOf(v) < 0 ? null : v;
+  }
+  function apply(c) {
+    all.forEach(function (n) { root.classList.remove("hide-" + n); });
+    if (c.agent && c.agent !== "both") { root.classList.add("hide-" + (c.agent === "claude" ? "copilot" : "claude")); }
+    if (c.stack && c.stack !== "both") { root.classList.add("hide-" + (c.stack === "python" ? "dotnet" : "python")); }
+    ["agent", "stack"].forEach(function (g) {
+      var v = c[g] || "both";
+      var el = form.querySelector('input[name="' + g + '"][value="' + v + '"]');
+      if (el) { el.checked = true; }
+    });
+  }
+
+  var choice = load();
+  [["agent", ["claude", "copilot"]], ["stack", ["python", "dotnet"]]].forEach(function (p) {
+    var v = param(p[0], p[1]);
+    if (v) { choice[p[0]] = v; }
+  });
+  apply(choice);
+  form.addEventListener("change", function (e) {
+    choice[e.target.name] = e.target.value;
+    save(choice);
+    apply(choice);
+  });
+})();
+</script>
+</body>
+</html>

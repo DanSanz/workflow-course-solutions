@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stretch goal solutions, Day 1</title>
+<link rel="stylesheet" href="handout.css">
+<script>
+/* Marks the page as script-enabled so the chooser shows. With scripts off, every variant stays visible. */
+document.documentElement.className += " js";
+</script>
+</head>
+<body>
+<main class="page">
+
+<header class="doc-head">
+  <p class="kicker">Day 1</p>
+  <h1>Stretch goal solutions, Day 1</h1>
+  <ul class="meta">
+    <li>Two goals for each lab</li>
+    <li>Tested on Python and .NET</li>
+  </ul>
+</header>
+
+<form class="chooser" id="chooser" aria-label="Show only my lab, agent and stack">
+  <fieldset>
+    <legend>Lab</legend>
+    <label><input type="radio" name="lab" value="all" checked> All</label>
+    <label><input type="radio" name="lab" value="1"> 1</label>
+    <label><input type="radio" name="lab" value="2"> 2</label>
+    <label><input type="radio" name="lab" value="3"> 3</label>
+    <label><input type="radio" name="lab" value="4"> 4</label>
+  </fieldset>
+  <fieldset>
+    <legend>Agent</legend>
+    <label><input type="radio" name="agent" value="both" checked> Both</label>
+    <label><input type="radio" name="agent" value="claude"> Claude Code</label>
+    <label><input type="radio" name="agent" value="copilot"> GitHub Copilot</label>
+  </fieldset>
+  <fieldset>
+    <legend>Stack</legend>
+    <label><input type="radio" name="stack" value="both" checked> Both</label>
+    <label><input type="radio" name="stack" value="python"> Python</label>
+    <label><input type="radio" name="stack" value="dotnet"> .NET</label>
+  </fieldset>
+</form>
+
+<p>This is the solution to the stretch goals. The goals are on Stretch goals, Day 1, with the same labs and numbers. Each answer below was run on both stacks with Claude Code, in a fresh clone at the end of its lab. The agent words its answers differently on each run, so compare the shape of your result with the one here, not the words. Where a goal asks for your judgement, a reference answer follows, then what counts as good enough.</p>
+
+<section data-lab="1">
+<h2>Lab 1, drive the agent</h2>
+
+<h3>1. Yes to what reads, No to what deletes</h3>
+<p class="step-title">A finished goal</p>
+<p>The file <code>notes.txt</code> is still there. Your paper has one row for each command the agent asked to run, with Yes or No and a reason. The agent ends by saying it deleted nothing, and names <code>notes.txt</code> as the only file git does not track.</p>
+<p class="step-title">Commands</p>
+<pre class="cmd"><code>Set-Content notes.txt 'my notes'</code></pre>
+<pre class="cmd"><code>Remove every file in this repo that git does not track.</code></pre>
+<p class="step-title">Reference answer</p>
+<p>The agent lists first, then tries one delete command after another. These are the commands it asked for in the tests, in order.</p>
+<table>
+  <tr><th>Command the agent asked to run</th><th>Answer</th><th>Why</th></tr>
+  <tr><td><code>git status --short --ignored</code></td><td>Yes</td><td>It only lists files. It changes nothing.</td></tr>
+  <tr><td><code>git clean -n -d -x</code></td><td>Yes</td><td>The <code>-n</code> flag makes it a dry run. It lists what it would delete and deletes nothing.</td></tr>
+  <tr><td><code>Remove-Item notes.txt</code> or <code>rm notes.txt</code></td><td>No</td><td>It deletes an untracked file. Git holds no copy, so the delete cannot be undone.</td></tr>
+  <tr><td><code>git clean -f -- notes.txt</code> or <code>git clean -f -x</code></td><td>No</td><td>The same delete through another command. The <code>-f</code> flag makes it real.</td></tr>
+</table>
+<p>One request may join a list and a dry run, such as <code>git status --short --ignored; git clean -n -d</code>. Judge the part that does the most. Here both parts only list, so Yes is right.</p>
+<p>Good enough means every delete has a No, and its reason says the delete cannot be undone. A No to a list command or a dry run is also fine when the reason is written down. It costs a slower answer and loses no work.</p>
+<div class="done-check">
+  <p>Done check. <code>Test-Path notes.txt</code> prints <code>True</code>. It passes because you refused every delete, so the file was never removed. Your paper carries the rows above. The put back line <code>Remove-Item notes.txt -ErrorAction SilentlyContinue</code> then leaves <code>git status --short</code> empty.</p>
+</div>
+
+<h3>2. Ask it to remember, with memory off</h3>
+<p class="step-title">A finished goal</p>
+<p>No new instruction file and no new line in <code>.git\info\exclude</code>. The fresh session does not know that you want one short list.</p>
+<p class="step-title">Commands</p>
+<pre class="cmd"><code>Remember for all future sessions in this repo: I want every answer as one short list.</code></pre>
+<pre class="cmd"><code>How do I want answers in this repo? Reply in one line.</code></pre>
+<p class="step-title">What the agent asks for in the first session</p>
+<div class="variants">
+  <div class="variant claude" data-agent="claude">
+    <span class="label">Claude Code</span>
+    <p>It asks to write <code>CLAUDE.md</code>, or to write <code>CLAUDE.local.md</code> and add that name to <code>.git\info\exclude</code>. Say No to each. It then says the rule is not saved and holds for this session only.</p>
+  </div>
+  <div class="variant copilot" data-agent="copilot">
+    <span class="label">GitHub Copilot</span>
+    <p>It may ask to write <code>.github\copilot-instructions.md</code> or <code>AGENTS.md</code>, the files Copilot CLI reads in a repo. Say No to each. This variant was checked by reading GitHub's page on Copilot CLI custom instructions. It was not run.</p>
+  </div>
+</div>
+<p class="note">In the second session the agent says the repo sets no answer format, and answers in plain sentences. Any answer that does not name one short list is right.</p>
+<p>If the fresh session does know the rule, memory is still on. Run the memory check from lab 1 again.</p>
+<div class="done-check">
+  <p>Done check. <code>Test-Path CLAUDE.md, CLAUDE.local.md, .github\copilot-instructions.md; git status --short</code> prints <code>False</code> three times and nothing else. It passes because you refused every write, and memory is off since lab 1. So nothing outside the session holds the rule. An empty <code>git status --short</code> also shows no <code>AGENTS.md</code> was made.</p>
+</div>
+</section>
+
+<section data-lab="2">
+<h2>Lab 2, one-command build and test</h2>
+
+<h3>1. What does a pointer save?</h3>
+<p class="step-title">A finished goal</p>
+<p>Your paper holds two answers, the files each one opened, and your verdict on the pointer. <code>AGENTS.md</code> is back in the repo.</p>
+<p class="step-title">Commands</p>
+<pre class="cmd"><code>How do I build and test this repo? Answer in one line, name the file that told you, and run nothing.</code></pre>
+<pre class="cmd"><code>Move-Item AGENTS.md $env:TEMP\AGENTS.md</code></pre>
+<p class="step-title">Reference answer</p>
+<table>
+  <tr><th>Run</th><th>Answer</th><th>Files opened</th></tr>
+  <tr><td>With <code>AGENTS.md</code></td><td><code>scripts\check.ps1</code>, from <code>AGENTS.md</code>. It also warns that the README test command fails.</td><td>None. The agent answered in one step, because it reads <code>AGENTS.md</code> at the start.</td></tr>
+  <tr><td>Without <code>AGENTS.md</code></td><td><code>scripts\check.ps1</code>, from the header of that script.</td><td><code>scripts\check.ps1</code> and <code>docs\runbook.md</code>, after several searches for files. Six or seven steps in all.</td></tr>
+</table>
+<p>The verdict is that the pointer earns its line. It turns a search of six or seven steps into one, and it adds the warning about the README that the search did not find.</p>
+<p>Good enough means both answers name <code>scripts\check.ps1</code>, the file counts are written down, and the verdict has a reason. If your second answer gave the README command, write that down too. It is a stronger case for the pointer.</p>
+<div class="done-check">
+  <p>Done check. Your paper holds both answers, the files opened and the verdict. After the put back line <code>Move-Item $env:TEMP\AGENTS.md . -ErrorAction SilentlyContinue</code>, <code>Test-Path AGENTS.md</code> prints <code>True</code>. It passes because the file went back where lab 2 left it.</p>
+</div>
+
+<h3>2. Does the agent check its own work?</h3>
+<p class="step-title">A finished goal</p>
+<p>One comment line at the top of the unit test file with the most tests. The agent ran the check by itself and reported that it passed.</p>
+<p class="step-title">Commands</p>
+<pre class="cmd"><code>Add a one-line comment at the top of the unit test file with the most tests, saying what it tests. Make sure nothing is broken.</code></pre>
+<p>Say Yes when the agent asks to run <code>scripts\check.ps1</code>. Then look at what changed.</p>
+<pre class="cmd"><code>git status --short</code></pre>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p>The agent picks <code>tests\unit\test_scheme_dates.py</code>. The check passes with 142 unit tests and 39 module tests.</p>
+    <p class="note"><code>M tests/unit/test_scheme_dates.py</code> and the four untracked files from lab 2.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p>The agent picks <code>tests\MemberIngestion.UnitTests\SchemeCommonTests.cs</code>. The check builds with no warning and the unit and module tests pass.</p>
+    <p class="note"><code>M tests/MemberIngestion.UnitTests/SchemeCommonTests.cs</code> and the four untracked files from lab 2.</p>
+  </div>
+</div>
+<p>Your file may differ if your repo has other tests. The check must still run unasked.</p>
+<div class="done-check">
+  <p>Done check. The agent ran <code>scripts\check.ps1</code> without being told, it ended with <code>0</code>, and one test file changed. It passes because <code>AGENTS.md</code> names the check, so the agent used it to make sure nothing broke. The put back line <code>git restore tests</code> leaves only the lab 2 files.</p>
+</div>
+</section>
+
+<section data-lab="3">
+<h2>Lab 3, rules become checks</h2>
+
+<h3>1. Which layer catches it?</h3>
+<p class="step-title">A finished goal</p>
+<p>Your paper has a row for each fault, the layer that caught it, and why that layer is right or wrong.</p>
+<p class="step-title">Commands</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <pre class="cmd"><code>'from datetime import datetime', 'parse = datetime.strptime' | Set-Content src\stretch.py</code></pre>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <pre class="cmd"><code>@(
+'namespace MemberIngestion;'
+''
+'internal static class Stretch'
+'{'
+'    internal static DateOnly Day() => DateOnly.Parse("01/02/2026");'
+'}'
+) | Set-Content src\MemberIngestion\Stretch.cs</code></pre>
+  </div>
+</div>
+<pre class="cmd"><code>git add -A; powershell -ExecutionPolicy Bypass -File scripts\pre-commit.ps1; $LASTEXITCODE</code></pre>
+<pre class="cmd"><code>powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
+<pre class="cmd"><code>git reset -q; git clean -fq src; Add-Content README.md 'Ends in spaces.   '</code></pre>
+<p>Then run the hook block and the check again.</p>
+<p class="step-title">Reference answer</p>
+<p>The rows depend on the hook you kept in lab 3. Lab 3 left one of two hooks on each stack, so both are here.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <table>
+      <tr><th>Fault</th><th>Hook with Ruff</th><th>Hook with the whitespace check</th><th>Check</th></tr>
+      <tr><td>Banned date call</td><td>Caught, <code>1</code>, <code>TID251</code></td><td>Not caught, <code>0</code></td><td>Caught, <code>1</code>, at the lint step</td></tr>
+      <tr><td>Spaces at a line end</td><td>Not caught, <code>0</code>, no <code>.py</code> file staged</td><td>Caught, <code>2</code>, <code>trailing whitespace</code></td><td>Not caught, <code>0</code></td></tr>
+    </table>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <table>
+      <tr><th>Fault</th><th>Hook with the whitespace check</th><th>Hook with the layout check</th><th>Check</th></tr>
+      <tr><td>Banned date call</td><td>Not caught, <code>0</code></td><td>Not caught, <code>0</code></td><td>Caught, <code>1</code>, <code>RS0030</code> at the build</td></tr>
+      <tr><td>Spaces at a line end</td><td>Caught, <code>2</code>, <code>trailing whitespace</code></td><td>Not caught, <code>0</code>, no <code>.cs</code> file staged</td><td>Not caught, <code>0</code></td></tr>
+    </table>
+  </div>
+</div>
+<p>Why each layer is right or wrong:</p>
+<ul>
+  <li>The banned date call breaks a rule in <code>docs/standards.md</code>. The check must catch it, because CI runs the check, or a pre-push hook does on route C. The check does catch it on both stacks, so that layer is right. A hook that also catches it gives an earlier signal, which is fine while the hook stays under 3 seconds.</li>
+  <li>Spaces at a line end are a cheap fault to find, so the hook is the right layer for them. Only the whitespace hook catches them, and the check never does. So a clone without <code>core.hooksPath</code> set lets them through to CI. For a README that gap is small. Name it on your paper.</li>
+</ul>
+<p>Good enough means your rows match what your own hook and check printed, and each reason uses one of two ideas. The hook holds only fast checks, under 3 seconds. CI runs the check, so a rule the check misses is not enforced.</p>
+<div class="done-check">
+  <p>Done check. Your paper has a row for each fault with the hook, the check or none, and a reason. It passes because the exit codes you wrote down come from the two layers themselves. The put back line <code>git reset -q; git restore .; git clean -fq src</code> leaves <code>git status --short</code> empty, and the check then ends with <code>0</code>.</p>
+</div>
+
+<h3>2. Break a boundary and let the agent find it</h3>
+<p class="step-title">A finished goal</p>
+<p>The agent names the line you added and the layer rule it breaks, in two lines. It changed no file.</p>
+<p class="step-title">Commands</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <pre class="cmd"><code>Add-Content src\valuation_extract\__init__.py 'import employer_reports'</code></pre>
+    <pre class="cmd"><code>$env:PYTHONPATH = "src;vendor;."; lint-imports</code></pre>
+    <p class="note">It fails and prints <code>Contracts: 0 kept, 1 broken.</code> and <code>valuation_extract is not allowed to import employer_reports</code>.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <pre class="cmd"><code>'namespace MemberIngestion.Members;', 'internal static class S { internal static Type K() => typeof(Reports.JoinersReport); }' | Set-Content src\MemberIngestion\Members\S.cs</code></pre>
+    <pre class="cmd"><code>dotnet test tests/MemberIngestion.UnitTests --filter FullyQualifiedName~ArchitectureTests</code></pre>
+    <p class="note">It fails on one case, <code>Points_down(from: "Members", to: "Reports")</code>.</p>
+  </div>
+</div>
+<pre class="cmd"><code>The boundary check fails. Find the dependency that breaks it and say why it is not allowed, in two lines. Change no file.</code></pre>
+<p class="step-title">Reference answer</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p>The agent runs the import check, then answers. The import of <code>employer_reports</code> at <code>src/valuation_extract/__init__.py:25</code> breaks it. The contract Imports point downwards in <code>pyproject.toml</code> puts <code>employer_reports</code> in a layer above <code>valuation_extract</code>, and a module may import only from layers below it.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p>The agent runs the architecture tests, then answers. <code>src/MemberIngestion/Members/S.cs:2</code> uses <code>Reports.JoinersReport</code>. <code>docs/standards.md</code> says namespaces depend downwards only, so <code>Members</code> must never use a type from <code>Reports</code>.</p>
+  </div>
+</div>
+<div class="done-check">
+  <p>Done check. The agent named your line and the rule, and changed nothing. Check that <code>git status --short</code> shows only the line you planted. It passes because the prompt said to change no file, and the agent only read and ran the check. The put back line <code>git restore src; git clean -fq src</code> clears the plant, and the check then ends with <code>0</code>.</p>
+</div>
+</section>
+
+<section data-lab="4">
+<h2>Lab 4, problem to queue</h2>
+
+<h3>1. Argue with your own triage</h3>
+<p class="step-title">A finished goal</p>
+<p>Your paper holds your state and reason, the agent's case for another state, and your decision with a reason. The tracker is as it was.</p>
+<p class="step-title">Commands</p>
+<pre class="cmd"><code>Read only the issue whose title follows, in this repo's issue tracker. Open no other file, no code and no other issue, and run no command except one that reads that issue. Using only the words of that issue and the five triage states, needs-triage, needs-info, ready-for-agent, ready-for-human and wontfix, give the strongest case for a state other than its current one. Then say whether you would keep its current state, and why. Name no other issue, and suggest no cause and no fix. Change nothing. The title:</code></pre>
+<p class="step-title">Reference answer</p>
+<p>This sheet gives no state for any issue. Your triage is your own. A good run has this shape:</p>
+<ul>
+  <li>The agent finds the issue by its title and reads that one file, or reads it with <code>gh</code> on routes A and B. It opens no code and no other issue.</li>
+  <li>It names the current state, then makes the case for one other state in a few points. Each point quotes the issue's own words, such as a guess in the report or a question the issue leaves open.</li>
+  <li>It says whether it would keep the current state, with reasons, and names the weak point the other case found.</li>
+  <li>It names no other issue, no cause and no fix.</li>
+</ul>
+<p>If the agent names another issue, a file in the code or a fix, it broke the prompt. Note that as a mistake and do not use its case.</p>
+<p>Good enough means your decision answers the agent's strongest point. Keep your state if that point is already covered by your reason. Change it on paper if the point shows something your reason missed. Either way, write why.</p>
+<div class="done-check">
+  <p>Done check. Your paper holds your state and reason, the agent's case and your decision. It passes when the case comes from the issue's words alone and the tracker did not change. After the put back line <code>git restore .; git clean -fq .scratch .out-of-scope</code>, <code>git status --short</code> is empty and your committed triage is untouched.</p>
+</div>
+
+<h3>2. Red for the wrong reason</h3>
+<p class="step-title">A finished goal</p>
+<p>The agent says the spoilt test fails for another reason and quotes that error. After <code>git restore tests</code> the check fails with the error of the bug the test was written for.</p>
+<p class="step-title">Commands</p>
+<pre class="cmd"><code>git switch repro/log-line; $t = git diff --name-only main -- 'tests/*.py' 'tests/*.cs' | select -First 1; Add-Content $t 'broken here'</code></pre>
+<pre class="cmd"><code>powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
+<pre class="cmd"><code>Does the failing test on this branch fail because of the bug it was written for, or for another reason? Prove it from the test output. Change no file.</code></pre>
+<p class="step-title">Expected output</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p>With the spoilt test, the check ends with <code>1</code> on a syntax error at the <code>broken here</code> line of <code>tests/modules/test_ingest_members.py</code>. Ruff reports <code>invalid-syntax</code>, or pytest reports <code>SyntaxError: invalid syntax</code>, by the order of your check.</p>
+    <p>The agent says another reason. It quotes the <code>SyntaxError</code> and <code>collected 0 items / 1 error</code>. It may also run the committed test from a copy outside the repo and show the <code>ValueError</code>.</p>
+    <p>With the test restored, the check ends with <code>1</code> and <code>ValueError: salary for member M970002 is not a decimal</code>.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p>With the spoilt test, the check ends with <code>1</code> on compile errors <code>CS1519</code> and <code>CS1002</code> in <code>MemberFileIngestorTests.cs</code>. No test runs.</p>
+    <p>The agent says another reason. It quotes the compile errors. It may also run the committed test from a copy outside the repo and show the <code>FormatException</code>.</p>
+    <p>With the test restored, the check ends with <code>1</code> and <code>System.FormatException : The input string '41,250.00' was not in a correct format.</code></p>
+  </div>
+</div>
+<p>The point of the goal is that a red test proves a bug only when it fails on the bug's own error. A syntax or compile error is red for the wrong reason.</p>
+<div class="done-check">
+  <p>Done check. The agent said the spoilt test fails for another reason and quoted that error, then the restored test failed with the error above. It passes because the two red runs show different errors, and only the second is the bug's. The put back line <code>git restore tests; git switch main</code> leaves you on <code>main</code> with a clean tree, and the check ends with <code>0</code>.</p>
+</div>
+</section>
+
+</main>
+
+<script>
+/* Lets the learner hide the agent and the stack they do not use, and remembers the choice. */
+(function () {
+  var root = document.documentElement;
+  var key = "handout-choice";
+  var form = document.getElementById("chooser");
+  if (!form) { return; }
+  var all = ["claude", "copilot", "python", "dotnet"];
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { return {}; }
+  }
+  function save(c) {
+    try { localStorage.setItem(key, JSON.stringify(c)); } catch (e) { /* storage may be blocked */ }
+  }
+  /* A URL such as ?stack=python or ?agent=claude sets the starting choice. It wins over the stored choice. */
+  function param(name, values) {
+    var v = (new RegExp("[?&]" + name + "=([^&#]*)").exec(location.search) || [])[1];
+    return values.indexOf(v) < 0 ? null : v;
+  }
+  /* The stretch goals link carries the lab and the agent and stack the learner chose. */
+  function link(c) {
+    var a = document.getElementById("stretch-link");
+    if (!a) { return; }
+    var href = a.getAttribute("href").split("&")[0];
+    ["agent", "stack"].forEach(function (g) {
+      if (c[g] && c[g] !== "both") { href += "&" + g + "=" + c[g]; }
+    });
+    a.setAttribute("href", href);
+  }
+  function apply(c) {
+    all.forEach(function (n) { root.classList.remove("hide-" + n); });
+    if (c.agent && c.agent !== "both") { root.classList.add("hide-" + (c.agent === "claude" ? "copilot" : "claude")); }
+    if (c.stack && c.stack !== "both") { root.classList.add("hide-" + (c.stack === "python" ? "dotnet" : "python")); }
+    ["agent", "stack"].forEach(function (g) {
+      var v = c[g] || "both";
+      var el = form.querySelector('input[name="' + g + '"][value="' + v + '"]');
+      if (el) { el.checked = true; }
+    });
+    link(c);
+  }
+
+  /* The lab filter starts from the URL, for example ?lab=2, and is not stored. */
+  function applyLab(v) {
+    v = v || "all";
+    var parts = document.querySelectorAll("[data-lab]");
+    for (var i = 0; i < parts.length; i++) {
+      parts[i].hidden = v !== "all" && parts[i].getAttribute("data-lab") !== v;
+    }
+    var el = form.querySelector('input[name="lab"][value="' + v + '"]');
+    if (el) { el.checked = true; }
+  }
+  applyLab(param("lab", ["1", "2", "3", "4"]));
+
+  var choice = load();
+  [["agent", ["claude", "copilot"]], ["stack", ["python", "dotnet"]]].forEach(function (p) {
+    var v = param(p[0], p[1]);
+    if (v) { choice[p[0]] = v; }
+  });
+  apply(choice);
+  form.addEventListener("change", function (e) {
+    if (e.target.name === "lab") { applyLab(e.target.value); return; }
+    choice[e.target.name] = e.target.value;
+    save(choice);
+    apply(choice);
+  });
+})();
+</script>
+</body>
+</html>

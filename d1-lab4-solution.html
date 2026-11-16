@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 4 solution, problem to queue</title>
+<link rel="stylesheet" href="handout.css">
+<script>
+/* Marks the page as script-enabled so the chooser shows. With scripts off, every variant stays visible. */
+document.documentElement.className += " js";
+</script>
+</head>
+<body>
+<main class="page">
+
+<header class="doc-head">
+  <p class="kicker">Day 1 solution</p>
+  <h1>Lab 4 solution, problem to queue</h1>
+  <ul class="meta">
+    <li>Solution to lab 4</li>
+  </ul>
+</header>
+
+<p>This is the solution to lab 4. The lab guide is Lab 4, problem to queue. Each section has the number of the step in the guide.</p>
+
+<form class="chooser" id="chooser" aria-label="Show only my agent and stack">
+  <fieldset>
+    <legend>Agent</legend>
+    <label><input type="radio" name="agent" value="both" checked> Both</label>
+    <label><input type="radio" name="agent" value="claude"> Claude Code</label>
+    <label><input type="radio" name="agent" value="copilot"> GitHub Copilot</label>
+  </fieldset>
+  <fieldset>
+    <legend>Stack</legend>
+    <label><input type="radio" name="stack" value="both" checked> Both</label>
+    <label><input type="radio" name="stack" value="python"> Python</label>
+    <label><input type="radio" name="stack" value="dotnet"> .NET</label>
+  </fieldset>
+</form>
+
+<h2>Step 1. Load the backlog</h2>
+<p class="note">The dry run ends with <code>Summary: 15 issues would be created, 0 skipped, 15 in the file.</code> The real run ends with <code>Summary: 15 issues created, 0 skipped, 15 in the file.</code></p>
+<p>On route C the issues are 15 files in <code>.scratch\backlog\issues</code>, numbered <code>01</code> to <code>15</code>, such as <code>01-member-load-fell-over-last-night.md</code>. On routes A and B they are 15 open issues, and the label line counts 7 labels in all. An issue number on GitHub can be higher than its file number. Find an issue by its title.</p>
+
+<h2>Step 2. Part 1, a test for the log line</h2>
+<p>Finished means one new test file under <code>tests</code> on the branch <code>repro/log-line</code>, and no change outside <code>tests</code>. The agent may also add a fixture file there.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p><code>tests/modules/test_ingest_members_unreadable_salary.py</code> writes a member file with the salary <code>41,250.00</code>. One test expects the file to be rejected with a <code>FeedError</code> and nothing loaded. One test expects the job to carry on and load the next file.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p><code>tests/MemberIngestion.ModuleTests/UnreadableSalaryTests.cs</code> writes a member file with the salary <code>41,250.00</code>. It expects a <code>FeedFormatException</code>, nothing in the store and no audit event.</p>
+  </div>
+</div>
+<p>Your test names and data will differ. What counts is the reason it fails.</p>
+
+<h2>Step 3. The check on the branch</h2>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+<pre class="cmd"><code>E           ValueError: salary for member M900002 is not a decimal</code></pre>
+    <p class="note">Ruff and the boundary check pass. Then <code>2 failed, 181 passed</code>, <code>check failed at: unit and module tests</code> and <code>1</code>.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+<pre class="cmd"><code>Expected: typeof(Scheme.Common.Feeds.FeedFormatException)
+Actual:   typeof(System.FormatException)
+---- System.FormatException : The input string '41,250.00' was not in a correct format.</code></pre>
+    <p class="note">The unit tests pass. The module tests show <code>Failed: 1, Passed: 11</code>, then <code>Check failed at: dotnet test tests/MemberIngestion.ModuleTests</code> and <code>1</code>.</p>
+  </div>
+</div>
+<p>Good enough: only the new tests fail, with the error type from the log line. The member reference may differ. A failure from an import, a build error or a typo is not a reproduction.</p>
+
+<h2>Step 4. Commit on the branch, back to main</h2>
+<pre class="cmd"><code>git diff main repro/log-line --name-only</code></pre>
+<p class="note">After the commit and the switch, it lists your test file and nothing outside <code>tests</code>.</p>
+
+<h2>Step 5. Your lab 3 CI run</h2>
+<p>Routes A and B only. Each push in lab 3 started a run of the <code>check</code> job. In a test on Python, both runs were green and took about 1.5 to 2 minutes. A run that is not green goes to the trainer. You do not fix it in this lab.</p>
+
+<h2>Step 6. Part 2, triage</h2>
+<p>The reference result for the first seven issues, in list order, is 5 ready and 1 record. Each ready issue gets a brief under the headings Category, Summary, Current behavior, Desired behavior, Key interfaces, Acceptance criteria and Out of scope.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <table>
+      <tr><th>Issue</th><th>State</th><th>Why</th></tr>
+      <tr><td>1 member load fell over last night??</td><td><code>ready-for-agent</code></td><td>The log line bug. Your test is its reproduction.</td></tr>
+      <tr><td>2 E90031 members missing this morning</td><td><code>wontfix</code> with a reply that points to issue 1, or <code>needs-info</code></td><td>The missing members are in the files that never loaded after the crash.</td></tr>
+      <tr><td>3 job crashes if a file isnt there</td><td><code>ready-for-agent</code></td><td>True today. <code>read_lines</code> raises <code>FileNotFoundError</code>, which <code>main</code> does not catch.</td></tr>
+      <tr><td>4 feeds imports pipeline.settings</td><td><code>ready-for-agent</code></td><td>The break you recorded in lab 3. Small, and the issue says how.</td></tr>
+      <tr><td>5 No audit event when a member file is rejected</td><td><code>ready-for-agent</code></td><td>Clear and small. It states what the fields may hold.</td></tr>
+      <tr><td>6 member job: total line at the end</td><td><code>ready-for-agent</code></td><td>Clear and small, with an example of the output.</td></tr>
+      <tr><td>7 Email late payers automatically</td><td><code>wontfix</code> and a record in <code>.out-of-scope</code></td><td><code>docs/runbook.md</code> says the jobs never contact employers.</td></tr>
+    </table>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <table>
+      <tr><th>Issue</th><th>State</th><th>Why</th></tr>
+      <tr><td>1 member load fell over last night??</td><td><code>ready-for-agent</code></td><td>The log line bug. Your test is its reproduction.</td></tr>
+      <tr><td>2 E90031 members missing this morning</td><td><code>wontfix</code> with a reply that points to issue 1, or <code>needs-info</code></td><td>The missing members are in the files that never loaded after the crash.</td></tr>
+      <tr><td>3 job crashes if a file isnt there</td><td><code>ready-for-agent</code></td><td>True today. <code>File.ReadAllLines</code> raises <code>FileNotFoundException</code>, which the loop in <code>Program.cs</code> does not catch.</td></tr>
+      <tr><td>4 MemberFeedReader needs IngestionOptions</td><td><code>ready-for-agent</code></td><td>The break you recorded in lab 3. Small, and the issue says how.</td></tr>
+      <tr><td>5 No audit event when a member file is rejected</td><td><code>ready-for-agent</code></td><td>Clear and small. It states what the fields may hold.</td></tr>
+      <tr><td>6 job: total line at the end</td><td><code>ready-for-agent</code></td><td>Clear and small, with an example of the output.</td></tr>
+      <tr><td>7 Email the pack to the employer automatically</td><td><code>wontfix</code> and a record in <code>.out-of-scope</code></td><td><code>docs/runbook.md</code> says the job never contacts employers.</td></tr>
+    </table>
+  </div>
+</div>
+<p>Good enough: you stopped at 5 ready and 1 record, or after the seventh issue, and you can give the reason for each state. A test learner on .NET put issue 5 in <code>ready-for-human</code>. That is a different result with a reason, and it meets the bar. Issues 1 and 3 are the same kind of mistake. In both, an error the job does not expect ends the run.</p>
+
+<h2>Step 7. Commit what triage wrote</h2>
+<pre class="cmd"><code>git status --short</code></pre>
+<p class="note">Route C shows <code>?? .scratch/</code> and <code>?? .out-of-scope/</code>. Routes A and B show only <code>?? .out-of-scope/</code>, because the issues live on GitHub. Push it there, so the link in the comment on issue 7 works.</p>
+
+<h2>The artefact you leave in the repo</h2>
+<ul>
+  <li>On <code>repro/log-line</code>, a test that fails because of the bug. Nothing is fixed.</li>
+  <li>On <code>main</code>, seven triaged issues with a state and a reason, 5 ready with a brief, and 1 record in <code>.out-of-scope</code>.</li>
+</ul>
+
+<h2>Done check</h2>
+<div class="done-check">
+  <pre class="cmd"><code>git switch repro/log-line; powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
+  <p class="note">The last line is <code>1</code>.</p>
+  <pre class="cmd"><code>git switch main; powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
+  <p class="note">The last line is <code>0</code>.</p>
+  <pre class="cmd"><code>gh issue list --label ready-for-agent --search sort:created-asc</code></pre>
+  <p class="note">Routes A and B: five issues, the titles of issues 1, 3, 4, 5 and 6.</p>
+  <pre class="cmd"><code>sls "^Status:" .scratch\backlog\issues\*.md -List | group Line -NoElement</code></pre>
+  <p class="note">Route C: <code>5 Status: ready-for-agent</code> and <code>2 Status: wontfix</code>, or one <code>wontfix</code> and one <code>needs-info</code>.</p>
+  <pre class="cmd"><code>Get-ChildItem .out-of-scope</code></pre>
+  <p class="note">One file, such as <code>employer-emails.md</code>.</p>
+  <p>Why it passes. The test lives only on the branch, so the check fails there and passes on <code>main</code>. Triage wrote a state for each of the seven issues it took, and one record for the refused feature.</p>
+</div>
+
+</main>
+
+<script>
+/* Lets the learner hide the agent and the stack they do not use, and remembers the choice. */
+(function () {
+  var root = document.documentElement;
+  var key = "handout-choice";
+  var form = document.getElementById("chooser");
+  if (!form) { return; }
+  var all = ["claude", "copilot", "python", "dotnet"];
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { return {}; }
+  }
+  function save(c) {
+    try { localStorage.setItem(key, JSON.stringify(c)); } catch (e) { /* storage may be blocked */ }
+  }
+  /* A URL such as ?stack=python or ?agent=claude sets the starting choice. It wins over the stored choice. */
+  function param(name, values) {
+    var v = (new RegExp("[?&]" + name + "=([^&#]*)").exec(location.search) || [])[1];
+    return values.indexOf(v) < 0 ? null : v;
+  }
+  function apply(c) {
+    all.forEach(function (n) { root.classList.remove("hide-" + n); });
+    if (c.agent && c.agent !== "both") { root.classList.add("hide-" + (c.agent === "claude" ? "copilot" : "claude")); }
+    if (c.stack && c.stack !== "both") { root.classList.add("hide-" + (c.stack === "python" ? "dotnet" : "python")); }
+    ["agent", "stack"].forEach(function (g) {
+      var v = c[g] || "both";
+      var el = form.querySelector('input[name="' + g + '"][value="' + v + '"]');
+      if (el) { el.checked = true; }
+    });
+  }
+
+  var choice = load();
+  [["agent", ["claude", "copilot"]], ["stack", ["python", "dotnet"]]].forEach(function (p) {
+    var v = param(p[0], p[1]);
+    if (v) { choice[p[0]] = v; }
+  });
+  apply(choice);
+  form.addEventListener("change", function (e) {
+    choice[e.target.name] = e.target.value;
+    save(choice);
+    apply(choice);
+  });
+})();
+</script>
+</body>
+</html>

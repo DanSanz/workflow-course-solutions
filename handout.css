@@ -1,0 +1,232 @@
+/* Shared stylesheet for learner handouts. No external fonts, scripts or network calls.
+   Opens light. Prints on A4. Readable from 320px wide. */
+
+:root {
+  --bg: #ffffff;
+  --text: #1c2430;
+  --muted: #566170;
+  --rule: #d5dbe3;
+  --accent: #1d5fa8;
+  --tint: #eef3f9;
+  --code-bg: #f4f6f8;
+  --code-border: #c9d1da;
+  --claude: #a4491f;
+  --copilot: #3b5bb5;
+  --python: #2c6e49;
+  --dotnet: #6b3fa0;
+  --warn-bg: #fff6e0;
+  --warn-border: #d9a520;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+
+/* ---------- Header ---------- */
+
+.doc-head { border-bottom: 3px solid var(--accent); padding-bottom: 10px; margin-bottom: 16px; }
+.doc-head .kicker { margin: 0; font-size: 0.85rem; color: var(--muted); letter-spacing: 0.02em; }
+.doc-head h1 { margin: 2px 0 6px; font-size: 1.7rem; line-height: 1.2; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 10px; margin: 0; padding: 0; list-style: none; }
+.meta li {
+  background: var(--tint);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.9rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 22px 0 6px;
+  color: var(--accent);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 3px;
+  break-after: avoid;
+}
+h3 { font-size: 1rem; margin: 14px 0 4px; break-after: avoid; }
+p { margin: 6px 0; }
+ul, ol { margin: 6px 0; padding-left: 1.4em; }
+li { margin: 3px 0; }
+
+/* ---------- Code and commands ---------- */
+
+code, pre {
+  font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+  font-size: 0.9rem;
+}
+code {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 3px;
+  padding: 0 4px;
+  overflow-wrap: anywhere;
+}
+pre {
+  margin: 6px 0;
+  padding: 8px 10px;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  white-space: pre-wrap;        /* wraps long commands so nothing is cut off */
+  overflow-wrap: anywhere;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+/* One click selects the whole command. Commands carry no prompt characters. */
+pre.cmd { user-select: all; cursor: text; }
+
+/* ---------- Numbered steps ---------- */
+
+ol.steps { list-style: none; counter-reset: step; padding-left: 0; }
+ol.steps > li {
+  counter-increment: step;
+  position: relative;
+  padding: 2px 0 8px 40px;
+  margin: 8px 0;
+  break-inside: avoid;
+}
+ol.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  line-height: 28px;
+}
+.step-title { font-weight: 600; margin: 0 0 2px; }
+
+/* ---------- Agent and stack variants ---------- */
+
+.variants { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0; }
+.variants.one { grid-template-columns: 1fr; }
+.variant { min-width: 0; border: 1px solid var(--rule); border-radius: 4px; padding: 0 8px 4px; }
+.variant > .label {
+  display: inline-block;
+  margin: 0 0 2px -8px;
+  padding: 1px 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 3px 0 4px 0;
+}
+.variant.claude  { border-top: 3px solid var(--claude); }
+.variant.copilot { border-top: 3px solid var(--copilot); }
+.variant.python  { border-top: 3px solid var(--python); }
+.variant.dotnet  { border-top: 3px solid var(--dotnet); }
+.claude  > .label { background: var(--claude); }
+.copilot > .label { background: var(--copilot); }
+.python  > .label { background: var(--python); }
+.dotnet  > .label { background: var(--dotnet); }
+
+/* Chooser, shown only when the inline script runs */
+.chooser { display: none; }
+.js .chooser {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  align-items: center;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  background: var(--tint);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+.chooser fieldset { border: 0; margin: 0; padding: 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.chooser legend { float: left; font-weight: 600; margin-right: 8px; padding: 0; }
+.chooser label { white-space: nowrap; }
+
+/* Hiding rules set by the script on the html element */
+.hide-claude  [data-agent="claude"],
+.hide-copilot [data-agent="copilot"],
+.hide-python  [data-stack="python"],
+.hide-dotnet  [data-stack="dotnet"] { display: none; }
+/* When only one variant is left, give it the whole width */
+.hide-claude .variants:not(.stack-pair),
+.hide-copilot .variants:not(.stack-pair) { grid-template-columns: 1fr; }
+.hide-python .variants.stack-pair,
+.hide-dotnet .variants.stack-pair { grid-template-columns: 1fr; }
+
+/* ---------- Boxes ---------- */
+
+.note, .stuck {
+  border-left: 4px solid var(--warn-border);
+  background: var(--warn-bg);
+  padding: 6px 10px;
+  margin: 8px 0;
+  border-radius: 0 4px 4px 0;
+  break-inside: avoid;
+}
+.done-check { border: 2px solid var(--python); border-radius: 4px; padding: 4px 10px 8px; break-inside: avoid; }
+.placeholder { color: var(--muted); font-style: italic; }
+
+table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+th, td { border: 1px solid var(--rule); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { background: var(--tint); }
+
+.footer { margin-top: 28px; padding-top: 8px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.85rem; }
+
+/* ---------- Cards (skill and alternatives) ---------- */
+
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.card-grid > section { border: 1px solid var(--rule); border-radius: 4px; padding: 0 12px 8px; break-inside: avoid; }
+.card-grid > section.wide { grid-column: 1 / -1; }
+.card-grid h2 { margin-top: 10px; }
+.author { font-weight: 700; }
+
+/* ---------- Narrow screens ---------- */
+
+@media (max-width: 640px) {
+  .variants, .card-grid { grid-template-columns: 1fr; }
+  .doc-head h1 { font-size: 1.4rem; }
+  ol.steps > li { padding-left: 34px; }
+  ol.steps > li::before { width: 24px; height: 24px; line-height: 24px; }
+}
+
+/* ---------- Print: A4 ---------- */
+
+@page { size: A4; margin: 14mm 14mm 16mm; }
+
+/* print-only shows only in print. print-hide hides in print. Ruled by the orchestrator for item 3b. */
+@media screen {
+  .print-only { display: none !important; }
+}
+
+@media print {
+  html { font-size: 10.5pt; }
+  body { font-size: 10.5pt; line-height: 1.4; }
+  .page { max-width: none; padding: 0; }
+  .chooser { display: none !important; }
+  .print-hide { display: none !important; }
+  pre, code { font-size: 9pt; }
+  pre { border-left-width: 3px; }
+  pre.cmd { user-select: auto; }
+  h2 { margin-top: 12px; }
+  ol.steps > li { margin: 4px 0; padding-bottom: 4px; }
+  .doc-head h1 { font-size: 16pt; }
+  a { color: inherit; text-decoration: none; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 2 solution, one-command build and test</title>
+<link rel="stylesheet" href="handout.css">
+<script>
+/* Marks the page as script-enabled so the chooser shows. With scripts off, every variant stays visible. */
+document.documentElement.className += " js";
+</script>
+</head>
+<body>
+<main class="page">
+
+<header class="doc-head">
+  <p class="kicker">Day 1 solution</p>
+  <h1>Lab 2 solution, one-command build and test</h1>
+  <ul class="meta">
+    <li>Solution to lab 2</li>
+  </ul>
+</header>
+
+<p>This is the solution to lab 2. The lab guide is Lab 2, one-command build and test. Each section has the number of the step in the guide. Agents word their files in their own way, so your files will differ from the ones shown here.</p>
+
+<form class="chooser" id="chooser" aria-label="Show only my agent and stack">
+  <fieldset>
+    <legend>Agent</legend>
+    <label><input type="radio" name="agent" value="both" checked> Both</label>
+    <label><input type="radio" name="agent" value="claude"> Claude Code</label>
+    <label><input type="radio" name="agent" value="copilot"> GitHub Copilot</label>
+  </fieldset>
+  <fieldset>
+    <legend>Stack</legend>
+    <label><input type="radio" name="stack" value="both" checked> Both</label>
+    <label><input type="radio" name="stack" value="python"> Python</label>
+    <label><input type="radio" name="stack" value="dotnet"> .NET</label>
+  </fieldset>
+</form>
+
+<h2>Step 1. Part 1, the check command</h2>
+<p>Finished means <code>scripts\check.ps1</code> runs the fast tests, stops at the first failure and exits with its code. It leaves the acceptance tests out. These are the lines that do the work in a finished script.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+<pre class="cmd"><code>param([switch]$Spark)
+$ErrorActionPreference = "Stop"
+Set-Location (Split-Path -Parent $PSScriptRoot)
+$env:PYTHONPATH = "src;vendor;."
+
+function Step([string]$Name, [scriptblock]$Run) {
+    Write-Host "== $Name"
+    &amp; $Run
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "check failed at: $Name"
+        exit $LASTEXITCODE
+    }
+}
+
+Step "unit and module tests" { python -m pytest tests/unit tests/modules -q }
+if ($Spark) {
+    $env:PYSPARK_PYTHON = "python"
+    Step "spark tests" { python -m pytest tests/spark -q }
+}
+Write-Host "check passed"
+exit 0</code></pre>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+<pre class="cmd"><code>$ErrorActionPreference = 'Stop'
+Set-Location (Split-Path -Parent $PSScriptRoot)
+
+$steps = @(
+    @('build', 'src/MemberIngestion.Job'),
+    @('test', 'tests/MemberIngestion.UnitTests'),
+    @('test', 'tests/MemberIngestion.ModuleTests')
+)
+
+foreach ($step in $steps) {
+    Write-Host "> dotnet $($step -join ' ')"
+    &amp; dotnet @step --nologo
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Check failed at: dotnet $($step -join ' ')"
+        exit $LASTEXITCODE
+    }
+}
+
+Write-Host 'Check passed.'
+exit 0</code></pre>
+  </div>
+</div>
+<p>In Python, the <code>-Spark</code> switch adds the Spark tests. Your agent may add steps, such as a compile step. That is fine while the acceptance tests stay out and the exit code passes through.</p>
+
+<h2>Step 2. Run it, break a test, restore it</h2>
+<p>You see <code>0</code>, then <code>1</code>, then <code>0</code>.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p class="note">Green: <code>181 passed</code> and <code>check passed</code>. Broken: <code>1 failed, 180 passed</code> and <code>check failed at: unit and module tests</code>.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p class="note">Green: <code>Passed: 74</code> for the unit tests, <code>Passed: 11</code> for the module tests, and <code>Check passed.</code> Broken: <code>Failed: 1, Passed: 73</code> and <code>Check failed at: dotnet test tests/MemberIngestion.UnitTests</code>.</p>
+  </div>
+</div>
+<p>After the restore, <code>git status --short</code> shows only new files, never a changed test.</p>
+
+<h2>Step 3. Part 2, the setup skill</h2>
+<p>Finished means three files in <code>docs/agents/</code> and an <code>## Agent skills</code> block in <code>AGENTS.md</code>.</p>
+<ul>
+  <li><code>issue-tracker.md</code> names GitHub on routes A and B, or local markdown in <code>.scratch/</code> on route C.</li>
+  <li><code>triage-labels.md</code> maps the five roles to the labels <code>needs-triage</code>, <code>needs-info</code>, <code>ready-for-agent</code>, <code>ready-for-human</code> and <code>wontfix</code>.</li>
+  <li><code>domain.md</code> says single context: one <code>GLOSSARY.md</code> at the repo root.</li>
+</ul>
+<p>The skill may suggest <code>CLAUDE.md</code>. The answer is <code>AGENTS.md</code>. On routes A and B, with two remotes, the answer for issues is <code>origin</code>.</p>
+<pre class="cmd"><code>gh label list</code></pre>
+<p class="note">Routes A and B only. The list holds the five labels. The skill may have made four of them already.</p>
+
+<h2>Step 4. Part 3, pointers in AGENTS.md</h2>
+<p>Finished means a short file of pointers above the Agent skills block, about 20 lines in all. This is the pointer part of one learner's file, cut short to fit the page.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+<pre class="cmd"><code>## Pointers
+
+- **Build and test**: `powershell -ExecutionPolicy Bypass -File scripts\check.ps1`.
+  Use it in place of the README's `python -m pytest`, which fails at collection
+  in `tests/acceptance`.
+- **Standards**: `docs/standards.md`. Read before writing or reviewing code.
+- **Runbook**: `docs/runbook.md`. Read before changing a nightly job.
+- **Domain terms**: `GLOSSARY.md`. Read before naming anything.</code></pre>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+<pre class="cmd"><code>## Pointers
+
+- **Check**: build and test with `powershell -File scripts\check.ps1`; exit 0 is green.
+  The README's `dotnet test` fails: it builds the whole solution, and the
+  acceptance tests do not compile.
+- **Standards**: `docs/standards.md`, before writing or reviewing C#.
+- **Runbook**: `docs/runbook.md`, for how the nightly job runs.
+- **Domain terms**: `GLOSSARY.md`, when a term is unfamiliar.</code></pre>
+  </div>
+</div>
+
+<h2>Step 5. Part 4, the rule about feed dates</h2>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p>Line 10 of <code>docs/standards.md</code>: feed dates are DD/MM/YYYY. Parse them with <code>scheme_common.dates.parse_uk_date</code>. Never parse a date by hand.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p>Line 9 of <code>docs/standards.md</code>: every <code>Parse</code>, <code>TryParse</code> and <code>ToString</code> of a date or number passes a format and a culture. Feed dates go through <code>Scheme.Common.Dates.UkDate</code>.</p>
+  </div>
+</div>
+<p>The Standards pointer in <code>AGENTS.md</code> names <code>docs/standards.md</code>. Lab 3 turns this rule into a check.</p>
+
+<h2>Steps 6 and 7. The question before the glossary</h2>
+<p>Finished means <code>C:\course\question.txt</code> and <code>C:\course\before.txt</code> exist, outside the repo. The answer has no right wording. Mark the names it uses for employers, files, rows and members. You compare them in step 8.</p>
+
+<h2>Step 8. Part 5, the glossary</h2>
+<p>Finished means <code>GLOSSARY.md</code> with 10 terms or more. Each term has a meaning and the names to avoid. One entry looks like this.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+<pre class="cmd"><code>**Employer**:
+An organisation that takes part in the scheme, reports its members
+and pays contributions for them.
+_Avoid_: Client, organisation, sender</code></pre>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+<pre class="cmd"><code>**Employer**:
+An organisation whose staff are members of the scheme and which sends
+the scheme a member file about them.
+_Avoid_: Client, organisation, sender</code></pre>
+  </div>
+</div>
+<p>The repo was built on these ten terms. Other terms are good enough if each has a meaning and the names to avoid.</p>
+<div class="variants stack-pair">
+  <div class="variant python" data-stack="python">
+    <span class="label">Python</span>
+    <p>Employer, member reference, feed file, row, contribution period, due date, late contribution, unreadable row, rejected file, joiner.</p>
+    <p>The trap is to keep a rejected file and an unreadable row apart. A rejected file is refused whole. An unreadable row is reported and the run carries on. The runbook calls those rows rejected rows.</p>
+  </div>
+  <div class="variant dotnet" data-stack="dotnet">
+    <span class="label">.NET</span>
+    <p>Employer, member reference, feed file, row, rejected file, joiner, date joined, service, load, file date.</p>
+    <p>The trap is the file date. It is the date the employer wrote in the header. The received date is the day the job loaded the file. Keep the two apart.</p>
+  </div>
+</div>
+<p>In <code>after.txt</code> the agent read <code>GLOSSARY.md</code> and used some of its terms. In test runs the answer was not shorter. If you see no change, that is a result too.</p>
+
+<h2>The artefact you leave in the repo</h2>
+<ul>
+  <li><code>scripts\check.ps1</code>, which builds the code and runs the fast tests.</li>
+  <li><code>docs/agents/</code> with <code>issue-tracker.md</code>, <code>triage-labels.md</code> and <code>domain.md</code>.</li>
+  <li><code>AGENTS.md</code> with the Agent skills block and four pointers.</li>
+  <li><code>GLOSSARY.md</code> with 10 terms or more.</li>
+</ul>
+
+<h2>Done check</h2>
+<div class="done-check">
+  <pre class="cmd"><code>"Agent skills","check.ps1","standards","runbook","GLOSSARY" | % { [bool](sls $_ AGENTS.md) }</code></pre>
+  <p class="note">Five lines of <code>True</code>.</p>
+  <pre class="cmd"><code>(dir docs\agents).Count; (gc AGENTS.md).Count; (sls "^\*\*" GLOSSARY.md).Count; Test-Path C:\course\before.txt, C:\course\after.txt</code></pre>
+  <p class="note">In one finished repo: <code>3</code>, <code>20</code>, <code>12</code>, <code>True</code>, <code>True</code>. The bar is 3, under 40, 10 or more, and two <code>True</code>.</p>
+  <p>Why it passes. Each name in the first line appears in <code>AGENTS.md</code>, so each search finds a line. The setup skill wrote three files. Each glossary term starts a line with <code>**</code>, so the count is the number of terms. Both answer files exist outside the repo.</p>
+</div>
+
+</main>
+
+<script>
+/* Lets the learner hide the agent and the stack they do not use, and remembers the choice. */
+(function () {
+  var root = document.documentElement;
+  var key = "handout-choice";
+  var form = document.getElementById("chooser");
+  if (!form) { return; }
+  var all = ["claude", "copilot", "python", "dotnet"];
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { return {}; }
+  }
+  function save(c) {
+    try { localStorage.setItem(key, JSON.stringify(c)); } catch (e) { /* storage may be blocked */ }
+  }
+  /* A URL such as ?stack=python or ?agent=claude sets the starting choice. It wins over the stored choice. */
+  function param(name, values) {
+    var v = (new RegExp("[?&]" + name + "=([^&#]*)").exec(location.search) || [])[1];
+    return values.indexOf(v) < 0 ? null : v;
+  }
+  function apply(c) {
+    all.forEach(function (n) { root.classList.remove("hide-" + n); });
+    if (c.agent && c.agent !== "both") { root.classList.add("hide-" + (c.agent === "claude" ? "copilot" : "claude")); }
+    if (c.stack && c.stack !== "both") { root.classList.add("hide-" + (c.stack === "python" ? "dotnet" : "python")); }
+    ["agent", "stack"].forEach(function (g) {
+      var v = c[g] || "both";
+      var el = form.querySelector('input[name="' + g + '"][value="' + v + '"]');
+      if (el) { el.checked = true; }
+    });
+  }
+
+  var choice = load();
+  [["agent", ["claude", "copilot"]], ["stack", ["python", "dotnet"]]].forEach(function (p) {
+    var v = param(p[0], p[1]);
+    if (v) { choice[p[0]] = v; }
+  });
+  apply(choice);
+  form.addEventListener("change", function (e) {
+    choice[e.target.name] = e.target.value;
+    save(choice);
+    apply(choice);
+  });
+})();
+</script>
+</body>
+</html>
