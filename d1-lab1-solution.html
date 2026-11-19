@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lab 1 solution, drive the agent</title>
 <link rel="stylesheet" href="handout.css">
+<script src="zoom.js"></script>
 <script>
 /* Marks the page as script-enabled so the chooser shows. With scripts off, every variant stays visible. */
 document.documentElement.className += " js";
@@ -40,8 +41,8 @@ document.documentElement.className += " js";
 
 <h2>Step 1. Set up your repo</h2>
 <p>Finished means a clone of your stack's repo with a remote named <code>upstream</code>. On route A or B it also has a remote named <code>origin</code>, your own private repo, and <code>gh</code> uses it.</p>
-<pre class="cmd"><code>git remote -v</code></pre>
-<p class="note">Route C shows two lines for <code>upstream</code> only. Routes A and B also show two lines for <code>origin</code>, with your own GitHub name in the address. <code>gh repo view</code> then names your own repo.</p>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>git remote -v</code></pre>
+<p class="note">Route C shows two lines for <code>upstream</code> only. Routes A and B also show two lines for <code>origin</code>, with your own GitHub name in the address. <code data-copy="Command to paste into PowerShell">gh repo view</code> then names your own repo.</p>
 <p>PowerShell shows the progress that <code>git</code> and <code>gh</code> print in red. The command still worked if no line starts with <code>fatal</code>.</p>
 
 <h2>Step 2. Part 1, one question about the code</h2>
@@ -66,37 +67,31 @@ document.documentElement.className += " js";
 </div>
 <p>An answer that names other paths, or no file, goes on your paper as a mistake.</p>
 
-<h2>Step 3. Part 2, one Yes and one No</h2>
-<p>After the Yes, <code>scratch.txt</code> is in the repo root and holds <code>hello</code>. After the No, nothing is deleted.</p>
-<pre class="cmd"><code>git status --short</code></pre>
+<h2>Step 3. Part 2, one Yes</h2>
+<p>After the Yes, <code>scratch.txt</code> is in the repo root and holds <code>hello</code>.</p>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>git status --short</code></pre>
 <p class="note">It shows only <code>?? scratch.txt</code>.</p>
-<p>The reason to refuse the delete. It changes far more than one file. It hits tracked files that the tests need. You can undo it only with git.</p>
-<div class="variants stack-pair">
-  <div class="variant python" data-stack="python">
-    <span class="label">Python</span>
-    <p>It would delete 10 tracked files: <code>requirements-dev.txt</code> and nine fixtures in <code>tests\fixtures</code>.</p>
-  </div>
-  <div class="variant dotnet" data-stack="dotnet">
-    <span class="label">.NET</span>
-    <p>It would delete six tracked fixtures in <code>tests\fixtures</code>.</p>
-  </div>
-</div>
-<p>Any reason that names what would change, whether it stays in the repo, or whether you can undo it, is good enough.</p>
+<p>Yes is the right answer, because the request passes the three checks in the guide.</p>
+<ul>
+  <li>It makes one new file.</li>
+  <li>The file stays in this repo.</li>
+  <li>You can undo it with <code>Remove-Item</code>, as part 3 does.</li>
+</ul>
 
 <h2>Step 4. Part 3, memory off</h2>
 <div class="variants">
   <div class="variant claude" data-agent="claude">
     <span class="label">Claude Code</span>
     <p>The file <code>.claude\settings.json</code> exists, and <code>scratch.txt</code> is gone.</p>
-    <pre class="cmd"><code>Get-Content .claude\settings.json</code></pre>
+    <pre class="cmd" data-copy="Command to paste into PowerShell"><code>Get-Content .claude\settings.json</code></pre>
     <p class="note">It prints <code>{"autoMemoryEnabled": false}</code>.</p>
-    <pre class="cmd"><code>git log --oneline -- .claude/settings.json</code></pre>
+    <pre class="cmd" data-copy="Command to paste into PowerShell"><code>git log --oneline -- .claude/settings.json</code></pre>
     <p class="note">One line, <code>Turn agent memory off</code>.</p>
   </div>
   <div class="variant copilot" data-agent="copilot">
     <span class="label">GitHub Copilot</span>
-    <p><code>copilot config memory false</code> prints <code>Set memory to false in settings.json.</code></p>
-    <pre class="cmd"><code>Get-Content "$env:USERPROFILE\.copilot\settings.json"</code></pre>
+    <p><code data-copy="Command to paste into PowerShell">copilot config memory false</code> prints <code>Set memory to false in settings.json.</code></p>
+    <pre class="cmd" data-copy="Command to paste into PowerShell"><code>Get-Content "$env:USERPROFILE\.copilot\settings.json"</code></pre>
     <p class="note">It holds <code>"memory": false</code>. Nothing changes in the repo.</p>
   </div>
 </div>
@@ -112,13 +107,13 @@ document.documentElement.className += " js";
   <div class="variants">
     <div class="variant claude" data-agent="claude">
       <span class="label">Claude Code</span>
-      <pre class="cmd"><code>claude -p "Reply with your auto memory directory, or NONE if it is off." --tools=</code></pre>
+      <pre class="cmd" data-copy="Command to paste into PowerShell"><code>claude -p "Reply with your auto memory directory, or NONE if it is off." --tools=</code></pre>
       <p class="note">It prints <code>NONE</code>.</p>
       <p>Why it passes. The project setting turns automatic memory off, so the agent has no memory folder for this repo. Without the file, the same command prints a folder under <code>.claude\projects</code>.</p>
     </div>
     <div class="variant copilot" data-agent="copilot">
       <span class="label">GitHub Copilot</span>
-      <pre class="cmd"><code>copilot config memory</code></pre>
+      <pre class="cmd" data-copy="Command to paste into PowerShell"><code>copilot config memory</code></pre>
       <p class="note">It prints <code>false</code>.</p>
       <p>Why it passes. The command reads the value that step 4 wrote to your user settings. Before step 4, on a new machine, it prints nothing.</p>
     </div>

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lab 3 solution, rules become checks</title>
 <link rel="stylesheet" href="handout.css">
+<script src="zoom.js"></script>
 <script>
 /* Marks the page as script-enabled so the chooser shows. With scripts off, every variant stays visible. */
 document.documentElement.className += " js";
@@ -43,7 +44,7 @@ document.documentElement.className += " js";
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
     <p><code>requirements-dev.txt</code> gains <code>ruff==0.17.*</code>. <code>pyproject.toml</code> gains the rule.</p>
-<pre class="cmd"><code>[tool.ruff]
+<pre><code>[tool.ruff]
 extend-exclude = ["vendor", "src/generated"]
 
 [tool.ruff.lint]
@@ -52,18 +53,18 @@ select = ["TID251"]
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "datetime.datetime.strptime".msg = "Feed dates are DD/MM/YYYY. Use scheme_common.dates.parse_uk_date."
 "time.strptime".msg = "Feed dates are DD/MM/YYYY. Use scheme_common.dates.parse_uk_date."</code></pre>
-    <p class="note"><code>python -m ruff check .</code> ends with <code>Found 20 errors.</code> They are in 8 files: 8 in <code>pipeline</code> and <code>src</code>, 4 in <code>tools/peek_feed.py</code> and 8 in <code>tests/unit</code>.</p>
+    <p class="note"><code data-copy="Command to paste into PowerShell">python -m ruff check .</code> ends with <code>Found 20 errors.</code> They are in 8 files: 8 in <code>pipeline</code> and <code>src</code>, 4 in <code>tools/peek_feed.py</code> and 8 in <code>tests/unit</code>.</p>
   </div>
   <div class="variant dotnet" data-stack="dotnet">
     <span class="label">.NET</span>
     <p><code>Directory.Packages.props</code> gains the package. <code>Directory.Build.props</code> adds it to every project but <code>Scheme.Common</code>.</p>
-<pre class="cmd"><code>&lt;PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" /&gt;</code></pre>
-<pre class="cmd"><code>&lt;ItemGroup Condition="'$(MSBuildProjectName)' != 'Scheme.Common'"&gt;
+<pre><code>&lt;PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" /&gt;</code></pre>
+<pre><code>&lt;ItemGroup Condition="'$(MSBuildProjectName)' != 'Scheme.Common'"&gt;
   &lt;PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" /&gt;
   &lt;AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" /&gt;
 &lt;/ItemGroup&gt;</code></pre>
     <p>The root <code>BannedSymbols.txt</code> has 25 lines, one for each string overload. Two of them:</p>
-<pre class="cmd"><code>M:System.DateOnly.Parse(System.String);Feed dates go through Scheme.Common.Dates.UkDate
+<pre><code>M:System.DateOnly.Parse(System.String);Feed dates go through Scheme.Common.Dates.UkDate
 M:System.DateTime.ParseExact(System.String,System.String,System.IFormatProvider);Feed dates go through Scheme.Common.Dates.UkDate</code></pre>
     <p class="note">The listing build ends with <code>20 Warning(s)</code> and <code>0 Error(s)</code>. They are rule <code>RS0030</code>, in three reports and four test files.</p>
   </div>
@@ -74,28 +75,28 @@ M:System.DateTime.ParseExact(System.String,System.String,System.IFormatProvider)
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
-<pre class="cmd"><code>- type=lambda text: datetime.strptime(text, "%d/%m/%Y").date()
+<pre><code>- type=lambda text: datetime.strptime(text, "%d/%m/%Y").date()
 + type=lambda text: parse_uk_date(text)</code></pre>
-    <p class="note"><code>python -m ruff check .</code> prints <code>All checks passed!</code> and the check ends with <code>0</code>.</p>
+    <p class="note"><code data-copy="Command to paste into PowerShell">python -m ruff check .</code> prints <code>All checks passed!</code> and the check ends with <code>0</code>.</p>
   </div>
   <div class="variant dotnet" data-stack="dotnet">
     <span class="label">.NET</span>
-<pre class="cmd"><code>- DateOnly.ParseExact(m.DateJoined, "dd/MM/yyyy", CultureInfo.InvariantCulture)
+<pre><code>- DateOnly.ParseExact(m.DateJoined, "dd/MM/yyyy", CultureInfo.InvariantCulture)
 + UkDate.Parse(m.DateJoined)</code></pre>
     <p class="note">The listing build shows no warning, and the check ends with <code>0</code>. <code>TryParse</code> calls become <code>UkDate.TryParse</code>.</p>
   </div>
 </div>
-<p><code>git status --short</code> shows changed code and test files. Nothing is committed yet.</p>
+<p><code data-copy="Command to paste into PowerShell">git status --short</code> shows changed code and test files. Nothing is committed yet.</p>
 
 <h2>Step 3. Part 2, the pre-commit hook</h2>
 <p><code>.githooks/pre-commit</code> has two lines.</p>
-<pre class="cmd"><code>#!/bin/sh
+<pre><code>#!/bin/sh
 exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/pre-commit.ps1</code></pre>
 <p><code>scripts/pre-commit.ps1</code> checks the staged files only and exits at once when none is staged. These are the lines that do the work.</p>
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
-<pre class="cmd"><code>$python = @(git diff --cached --name-only --diff-filter=ACM | Where-Object { $_ -like "*.py" })
+<pre><code>$python = @(git diff --cached --name-only --diff-filter=ACM | Where-Object { $_ -like "*.py" })
 if ($python.Count -eq 0) { exit 0 }
 
 python -m ruff check --force-exclude @python
@@ -104,7 +105,7 @@ exit $LASTEXITCODE</code></pre>
   </div>
   <div class="variant dotnet" data-stack="dotnet">
     <span class="label">.NET</span>
-<pre class="cmd"><code>$code = @(git diff --cached --name-only --diff-filter=ACM -- '*.cs')
+<pre><code>$code = @(git diff --cached --name-only --diff-filter=ACM -- '*.cs')
 if ($code.Count -eq 0) { exit 0 }
 
 &amp; dotnet format whitespace --folder --verify-no-changes --include @code
@@ -117,7 +118,7 @@ exit 0</code></pre>
 </div>
 
 <h2>Step 4. Turn the hook on, commit and time it</h2>
-<pre class="cmd"><code>git config core.hooksPath</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>git config core.hooksPath</code></pre>
 <p class="note">It prints <code>.githooks</code>.</p>
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
@@ -135,7 +136,7 @@ exit 0</code></pre>
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
-<pre class="cmd"><code>name: CI
+<pre><code>name: CI
 on:
   pull_request:
   push:
@@ -160,7 +161,7 @@ jobs:
   </div>
   <div class="variant dotnet" data-stack="dotnet">
     <span class="label">.NET</span>
-<pre class="cmd"><code>name: CI
+<pre><code>name: CI
 on:
   pull_request:
   push:
@@ -181,7 +182,7 @@ jobs:
 <p>Your agent may pick other action versions or add a step. The bar is one job named <code>check</code> that runs <code>scripts\check.ps1</code>. On route C, <code>.githooks/pre-push</code> has the same two lines as the pre-commit hook, with <code>scripts/check.ps1</code> as the file.</p>
 
 <h2>Step 6. Part 3, codebase-design on one module</h2>
-<p>The reference answer is deep, for both modules. Nothing in the repo changes, so <code>git status --short</code> prints nothing new.</p>
+<p>The reference answer is deep, for both modules. Nothing in the repo changes, so <code data-copy="Command to paste into PowerShell">git status --short</code> prints nothing new.</p>
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
@@ -212,7 +213,7 @@ jobs:
     <span class="label">Python</span>
     <p class="note">The first run ends with <code>Contracts: 0 kept, 1 broken.</code> and lists two imports, in either order: <code>feeds._reader -&gt; pipeline.settings</code> and <code>valuation_extract._eligibility -&gt; employer_reports.formatting</code>.</p>
     <p>The known break goes under the contract with a reason in words.</p>
-<pre class="cmd"><code># Known break. feeds._reader still reads STRICT_SCHEMA from the jobs package.
+<pre><code># Known break. feeds._reader still reads STRICT_SCHEMA from the jobs package.
 # That is a known problem to fix in its own change.
 ignore_imports = ["feeds._reader -&gt; pipeline.settings"]</code></pre>
     <p>The other break is fixed in <code>_eligibility.py</code>. It formats the date with <code>scheme_common.dates.format_uk_date</code> in place of <code>employer_reports.formatting.uk_date</code>. <code>scripts\check.ps1</code> gains <code>Step "import boundaries" { lint-imports }</code>. It already sets <code>PYTHONPATH</code> at the top.</p>
@@ -222,7 +223,7 @@ ignore_imports = ["feeds._reader -&gt; pipeline.settings"]</code></pre>
     <span class="label">.NET</span>
     <p class="note">The first run shows <code>Failed: 2, Passed: 4</code>. The failing types are <code>MemberIngestion.Feeds.MemberFeedReader</code> and <code>MemberIngestion.Ingestion.IngestSummary</code>.</p>
     <p>The known break goes in <code>Known</code> with a reason in words.</p>
-<pre class="cmd"><code>static readonly string[] Known = [
+<pre><code>static readonly string[] Known = [
     // MemberFeedReader reads the
     // ingestion options to get
     // StrictSchema. That is a
@@ -238,19 +239,21 @@ ignore_imports = ["feeds._reader -&gt; pipeline.settings"]</code></pre>
 
 <h2>The artefact you leave in the repo</h2>
 <ul>
-  <li>The banned-API rule, in <code>pyproject.toml</code> or in <code>BannedSymbols.txt</code> with the two props files.</li>
+  <li data-stack="python">The banned-API rule, in <code>pyproject.toml</code>.</li>
+  <li data-stack="dotnet">The banned-API rule, in <code>BannedSymbols.txt</code> with the two props files.</li>
   <li><code>.githooks/pre-commit</code> and <code>scripts/pre-commit.ps1</code>.</li>
   <li><code>.github/workflows/ci.yml</code>, or <code>.githooks/pre-push</code> on route C.</li>
-  <li>The boundary check, in <code>pyproject.toml</code> or in <code>ArchitectureTests.cs</code>, run by the check command.</li>
+  <li data-stack="python">The boundary check, in <code>pyproject.toml</code>, run by the check command.</li>
+  <li data-stack="dotnet">The boundary check, in <code>ArchitectureTests.cs</code>, run by the check command.</li>
 </ul>
 
 <h2>Done check</h2>
 <div class="done-check">
-  <pre class="cmd"><code>powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE; git config core.hooksPath</code></pre>
+  <pre class="cmd" data-copy="Command to paste into PowerShell"><code>powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE; git config core.hooksPath</code></pre>
   <p class="note">The last two lines are <code>0</code> and <code>.githooks</code>.</p>
-  <pre class="cmd"><code>git log origin/main --oneline -- .github/workflows/ci.yml</code></pre>
+  <pre class="cmd" data-copy="Command to paste into PowerShell"><code>git log origin/main --oneline -- .github/workflows/ci.yml</code></pre>
   <p class="note">Routes A and B: one line, <code>Add the CI workflow</code>.</p>
-  <pre class="cmd"><code>git log --oneline -- .github/workflows/ci.yml; Test-Path .githooks\pre-push</code></pre>
+  <pre class="cmd" data-copy="Command to paste into PowerShell"><code>git log --oneline -- .github/workflows/ci.yml; Test-Path .githooks\pre-push</code></pre>
   <p class="note">Route C: one line, then <code>True</code>.</p>
   <p>Why it passes. The check runs the date rule, the boundary check and the tests, and all three pass after the fixes. The hook path is set in this clone. The workflow was committed once, and on routes A and B it was pushed, so <code>origin/main</code> holds it.</p>
 </div>

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Stretch goal solutions, Day 1</title>
 <link rel="stylesheet" href="handout.css">
+<script src="zoom.js"></script>
 <script>
 /* Marks the page as script-enabled so the chooser shows. With scripts off, every variant stays visible. */
 document.documentElement.className += " js";
@@ -54,8 +55,8 @@ document.documentElement.className += " js";
 <p class="step-title">A finished goal</p>
 <p>The file <code>notes.txt</code> is still there. Your paper has one row for each command the agent asked to run, with Yes or No and a reason. The agent ends by saying it deleted nothing, and names <code>notes.txt</code> as the only file git does not track.</p>
 <p class="step-title">Commands</p>
-<pre class="cmd"><code>Set-Content notes.txt 'my notes'</code></pre>
-<pre class="cmd"><code>Remove every file in this repo that git does not track.</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>Set-Content notes.txt 'my notes'</code></pre>
+<pre class="cmd" data-copy="Prompt to paste into the agent"><code>Remove every file in this repo that git does not track.</code></pre>
 <p class="step-title">Reference answer</p>
 <p>The agent lists first, then tries one delete command after another. These are the commands it asked for in the tests, in order.</p>
 <table>
@@ -68,15 +69,15 @@ document.documentElement.className += " js";
 <p>One request may join a list and a dry run, such as <code>git status --short --ignored; git clean -n -d</code>. Judge the part that does the most. Here both parts only list, so Yes is right.</p>
 <p>Good enough means every delete has a No, and its reason says the delete cannot be undone. A No to a list command or a dry run is also fine when the reason is written down. It costs a slower answer and loses no work.</p>
 <div class="done-check">
-  <p>Done check. <code>Test-Path notes.txt</code> prints <code>True</code>. It passes because you refused every delete, so the file was never removed. Your paper carries the rows above. The put back line <code>Remove-Item notes.txt -ErrorAction SilentlyContinue</code> then leaves <code>git status --short</code> empty.</p>
+  <p>Done check. <code data-copy="Command to paste into PowerShell">Test-Path notes.txt</code> prints <code>True</code>. It passes because you refused every delete, so the file was never removed. Your paper carries the rows above. The put back line <code data-copy="Command to paste into PowerShell">Remove-Item notes.txt -ErrorAction SilentlyContinue</code> then leaves <code data-copy="Command to paste into PowerShell">git status --short</code> empty.</p>
 </div>
 
 <h3>2. Ask it to remember, with memory off</h3>
 <p class="step-title">A finished goal</p>
 <p>No new instruction file and no new line in <code>.git\info\exclude</code>. The fresh session does not know that you want one short list.</p>
 <p class="step-title">Commands</p>
-<pre class="cmd"><code>Remember for all future sessions in this repo: I want every answer as one short list.</code></pre>
-<pre class="cmd"><code>How do I want answers in this repo? Reply in one line.</code></pre>
+<pre class="cmd" data-copy="Prompt to paste into the agent"><code>Remember for all future sessions in this repo: I want every answer as one short list.</code></pre>
+<pre class="cmd" data-copy="Prompt to paste into the agent"><code>How do I want answers in this repo? Reply in one line.</code></pre>
 <p class="step-title">What the agent asks for in the first session</p>
 <div class="variants">
   <div class="variant claude" data-agent="claude">
@@ -91,7 +92,7 @@ document.documentElement.className += " js";
 <p class="note">In the second session the agent says the repo sets no answer format, and answers in plain sentences. Any answer that does not name one short list is right.</p>
 <p>If the fresh session does know the rule, memory is still on. Run the memory check from lab 1 again.</p>
 <div class="done-check">
-  <p>Done check. <code>Test-Path CLAUDE.md, CLAUDE.local.md, .github\copilot-instructions.md; git status --short</code> prints <code>False</code> three times and nothing else. It passes because you refused every write, and memory is off since lab 1. So nothing outside the session holds the rule. An empty <code>git status --short</code> also shows no <code>AGENTS.md</code> was made.</p>
+  <p>Done check. <code data-copy="Command to paste into PowerShell">Test-Path CLAUDE.md, CLAUDE.local.md, .github\copilot-instructions.md; git status --short</code> prints <code>False</code> three times and nothing else. It passes because you refused every write, and memory is off since lab 1. So nothing outside the session holds the rule. An empty <code data-copy="Command to paste into PowerShell">git status --short</code> also shows no <code>AGENTS.md</code> was made.</p>
 </div>
 </section>
 
@@ -102,8 +103,8 @@ document.documentElement.className += " js";
 <p class="step-title">A finished goal</p>
 <p>Your paper holds two answers, the files each one opened, and your verdict on the pointer. <code>AGENTS.md</code> is back in the repo.</p>
 <p class="step-title">Commands</p>
-<pre class="cmd"><code>How do I build and test this repo? Answer in one line, name the file that told you, and run nothing.</code></pre>
-<pre class="cmd"><code>Move-Item AGENTS.md $env:TEMP\AGENTS.md</code></pre>
+<pre class="cmd" data-copy="Prompt to paste into the agent"><code>How do I build and test this repo? Answer in one line, name the file that told you, and run nothing.</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>Move-Item AGENTS.md $env:TEMP\AGENTS.md</code></pre>
 <p class="step-title">Reference answer</p>
 <table>
   <tr><th>Run</th><th>Answer</th><th>Files opened</th></tr>
@@ -113,16 +114,16 @@ document.documentElement.className += " js";
 <p>The verdict is that the pointer earns its line. It turns a search of six or seven steps into one, and it adds the warning about the README that the search did not find.</p>
 <p>Good enough means both answers name <code>scripts\check.ps1</code>, the file counts are written down, and the verdict has a reason. If your second answer gave the README command, write that down too. It is a stronger case for the pointer.</p>
 <div class="done-check">
-  <p>Done check. Your paper holds both answers, the files opened and the verdict. After the put back line <code>Move-Item $env:TEMP\AGENTS.md . -ErrorAction SilentlyContinue</code>, <code>Test-Path AGENTS.md</code> prints <code>True</code>. It passes because the file went back where lab 2 left it.</p>
+  <p>Done check. Your paper holds both answers, the files opened and the verdict. After the put back line <code data-copy="Command to paste into PowerShell">Move-Item $env:TEMP\AGENTS.md . -ErrorAction SilentlyContinue</code>, <code data-copy="Command to paste into PowerShell">Test-Path AGENTS.md</code> prints <code>True</code>. It passes because the file went back where lab 2 left it.</p>
 </div>
 
 <h3>2. Does the agent check its own work?</h3>
 <p class="step-title">A finished goal</p>
 <p>One comment line at the top of the unit test file with the most tests. The agent ran the check by itself and reported that it passed.</p>
 <p class="step-title">Commands</p>
-<pre class="cmd"><code>Add a one-line comment at the top of the unit test file with the most tests, saying what it tests. Make sure nothing is broken.</code></pre>
+<pre class="cmd" data-copy="Prompt to paste into the agent"><code>Add a one-line comment at the top of the unit test file with the most tests, saying what it tests. Make sure nothing is broken.</code></pre>
 <p>Say Yes when the agent asks to run <code>scripts\check.ps1</code>. Then look at what changed.</p>
-<pre class="cmd"><code>git status --short</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>git status --short</code></pre>
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
@@ -137,7 +138,7 @@ document.documentElement.className += " js";
 </div>
 <p>Your file may differ if your repo has other tests. The check must still run unasked.</p>
 <div class="done-check">
-  <p>Done check. The agent ran <code>scripts\check.ps1</code> without being told, it ended with <code>0</code>, and one test file changed. It passes because <code>AGENTS.md</code> names the check, so the agent used it to make sure nothing broke. The put back line <code>git restore tests</code> leaves only the lab 2 files.</p>
+  <p>Done check. The agent ran <code>scripts\check.ps1</code> without being told, it ended with <code>0</code>, and one test file changed. It passes because <code>AGENTS.md</code> names the check, so the agent used it to make sure nothing broke. The put back line <code data-copy="Command to paste into PowerShell">git restore tests</code> leaves only the lab 2 files.</p>
 </div>
 </section>
 
@@ -151,11 +152,11 @@ document.documentElement.className += " js";
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
-    <pre class="cmd"><code>'from datetime import datetime', 'parse = datetime.strptime' | Set-Content src\stretch.py</code></pre>
+    <pre class="cmd" data-copy="Command to paste into PowerShell"><code>'from datetime import datetime', 'parse = datetime.strptime' | Set-Content src\stretch.py</code></pre>
   </div>
   <div class="variant dotnet" data-stack="dotnet">
     <span class="label">.NET</span>
-    <pre class="cmd"><code>@(
+    <pre class="cmd" data-copy="Command to paste into PowerShell"><code>@(
 'namespace MemberIngestion;'
 ''
 'internal static class Stretch'
@@ -165,9 +166,9 @@ document.documentElement.className += " js";
 ) | Set-Content src\MemberIngestion\Stretch.cs</code></pre>
   </div>
 </div>
-<pre class="cmd"><code>git add -A; powershell -ExecutionPolicy Bypass -File scripts\pre-commit.ps1; $LASTEXITCODE</code></pre>
-<pre class="cmd"><code>powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
-<pre class="cmd"><code>git reset -q; git clean -fq src; Add-Content README.md 'Ends in spaces.   '</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>git add -A; powershell -ExecutionPolicy Bypass -File scripts\pre-commit.ps1; $LASTEXITCODE</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>git reset -q; git clean -fq src; Add-Content README.md 'Ends in spaces.   '</code></pre>
 <p>Then run the hook block and the check again.</p>
 <p class="step-title">Reference answer</p>
 <p>The rows depend on the hook you kept in lab 3. Lab 3 left one of two hooks on each stack, so both are here.</p>
@@ -196,7 +197,7 @@ document.documentElement.className += " js";
 </ul>
 <p>Good enough means your rows match what your own hook and check printed, and each reason uses one of two ideas. The hook holds only fast checks, under 3 seconds. CI runs the check, so a rule the check misses is not enforced.</p>
 <div class="done-check">
-  <p>Done check. Your paper has a row for each fault with the hook, the check or none, and a reason. It passes because the exit codes you wrote down come from the two layers themselves. The put back line <code>git reset -q; git restore .; git clean -fq src</code> leaves <code>git status --short</code> empty, and the check then ends with <code>0</code>.</p>
+  <p>Done check. Your paper has a row for each fault with the hook, the check or none, and a reason. It passes because the exit codes you wrote down come from the two layers themselves. The put back line <code data-copy="Command to paste into PowerShell">git reset -q; git restore .; git clean -fq src</code> leaves <code data-copy="Command to paste into PowerShell">git status --short</code> empty, and the check then ends with <code>0</code>.</p>
 </div>
 
 <h3>2. Break a boundary and let the agent find it</h3>
@@ -206,18 +207,18 @@ document.documentElement.className += " js";
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
-    <pre class="cmd"><code>Add-Content src\valuation_extract\__init__.py 'import employer_reports'</code></pre>
-    <pre class="cmd"><code>$env:PYTHONPATH = "src;vendor;."; lint-imports</code></pre>
+    <pre class="cmd" data-copy="Command to paste into PowerShell"><code>Add-Content src\valuation_extract\__init__.py 'import employer_reports'</code></pre>
+    <pre class="cmd" data-copy="Command to paste into PowerShell"><code>$env:PYTHONPATH = "src;vendor;."; lint-imports</code></pre>
     <p class="note">It fails and prints <code>Contracts: 0 kept, 1 broken.</code> and <code>valuation_extract is not allowed to import employer_reports</code>.</p>
   </div>
   <div class="variant dotnet" data-stack="dotnet">
     <span class="label">.NET</span>
-    <pre class="cmd"><code>'namespace MemberIngestion.Members;', 'internal static class S { internal static Type K() => typeof(Reports.JoinersReport); }' | Set-Content src\MemberIngestion\Members\S.cs</code></pre>
-    <pre class="cmd"><code>dotnet test tests/MemberIngestion.UnitTests --filter FullyQualifiedName~ArchitectureTests</code></pre>
+    <pre class="cmd" data-copy="Command to paste into PowerShell"><code>'namespace MemberIngestion.Members;', 'internal static class S { internal static Type K() => typeof(Reports.JoinersReport); }' | Set-Content src\MemberIngestion\Members\S.cs</code></pre>
+    <pre class="cmd" data-copy="Command to paste into PowerShell"><code>dotnet test tests/MemberIngestion.UnitTests --filter FullyQualifiedName~ArchitectureTests</code></pre>
     <p class="note">It fails on one case, <code>Points_down(from: "Members", to: "Reports")</code>.</p>
   </div>
 </div>
-<pre class="cmd"><code>The boundary check fails. Find the dependency that breaks it and say why it is not allowed, in two lines. Change no file.</code></pre>
+<pre class="cmd" data-copy="Prompt to paste into the agent"><code>The boundary check fails. Find the dependency that breaks it and say why it is not allowed, in two lines. Change no file.</code></pre>
 <p class="step-title">Reference answer</p>
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
@@ -230,7 +231,7 @@ document.documentElement.className += " js";
   </div>
 </div>
 <div class="done-check">
-  <p>Done check. The agent named your line and the rule, and changed nothing. Check that <code>git status --short</code> shows only the line you planted. It passes because the prompt said to change no file, and the agent only read and ran the check. The put back line <code>git restore src; git clean -fq src</code> clears the plant, and the check then ends with <code>0</code>.</p>
+  <p>Done check. The agent named your line and the rule, and changed nothing. Check that <code data-copy="Command to paste into PowerShell">git status --short</code> shows only the line you planted. It passes because the prompt said to change no file, and the agent only read and ran the check. The put back line <code data-copy="Command to paste into PowerShell">git restore src; git clean -fq src</code> clears the plant, and the check then ends with <code>0</code>.</p>
 </div>
 </section>
 
@@ -241,7 +242,7 @@ document.documentElement.className += " js";
 <p class="step-title">A finished goal</p>
 <p>Your paper holds your state and reason, the agent's case for another state, and your decision with a reason. The tracker is as it was.</p>
 <p class="step-title">Commands</p>
-<pre class="cmd"><code>Read only the issue whose title follows, in this repo's issue tracker. Open no other file, no code and no other issue, and run no command except one that reads that issue. Using only the words of that issue and the five triage states, needs-triage, needs-info, ready-for-agent, ready-for-human and wontfix, give the strongest case for a state other than its current one. Then say whether you would keep its current state, and why. Name no other issue, and suggest no cause and no fix. Change nothing. The title:</code></pre>
+<pre class="cmd" data-copy="Prompt to paste into the agent"><code>Read only the issue whose title follows, in this repo's issue tracker. Open no other file, no code and no other issue, and run no command except one that reads that issue. Using only the words of that issue and the five triage states, needs-triage, needs-info, ready-for-agent, ready-for-human and wontfix, give the strongest case for a state other than its current one. Then say whether you would keep its current state, and why. Name no other issue, and suggest no cause and no fix. Change nothing. The title:</code></pre>
 <p class="step-title">Reference answer</p>
 <p>This sheet gives no state for any issue. Your triage is your own. A good run has this shape:</p>
 <ul>
@@ -253,16 +254,16 @@ document.documentElement.className += " js";
 <p>If the agent names another issue, a file in the code or a fix, it broke the prompt. Note that as a mistake and do not use its case.</p>
 <p>Good enough means your decision answers the agent's strongest point. Keep your state if that point is already covered by your reason. Change it on paper if the point shows something your reason missed. Either way, write why.</p>
 <div class="done-check">
-  <p>Done check. Your paper holds your state and reason, the agent's case and your decision. It passes when the case comes from the issue's words alone and the tracker did not change. After the put back line <code>git restore .; git clean -fq .scratch .out-of-scope</code>, <code>git status --short</code> is empty and your committed triage is untouched.</p>
+  <p>Done check. Your paper holds your state and reason, the agent's case and your decision. It passes when the case comes from the issue's words alone and the tracker did not change. After the put back line <code data-copy="Command to paste into PowerShell">git restore .; git clean -fq .scratch .out-of-scope</code>, <code data-copy="Command to paste into PowerShell">git status --short</code> is empty and your committed triage is untouched.</p>
 </div>
 
 <h3>2. Red for the wrong reason</h3>
 <p class="step-title">A finished goal</p>
-<p>The agent says the spoilt test fails for another reason and quotes that error. After <code>git restore tests</code> the check fails with the error of the bug the test was written for.</p>
+<p>The agent says the spoilt test fails for another reason and quotes that error. After <code data-copy="Command to paste into PowerShell">git restore tests</code> the check fails with the error of the bug the test was written for.</p>
 <p class="step-title">Commands</p>
-<pre class="cmd"><code>git switch repro/log-line; $t = git diff --name-only main -- 'tests/*.py' 'tests/*.cs' | select -First 1; Add-Content $t 'broken here'</code></pre>
-<pre class="cmd"><code>powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
-<pre class="cmd"><code>Does the failing test on this branch fail because of the bug it was written for, or for another reason? Prove it from the test output. Change no file.</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>git switch repro/log-line; $t = git diff --name-only main -- 'tests/*.py' 'tests/*.cs' | select -First 1; Add-Content $t 'broken here'</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
+<pre class="cmd" data-copy="Prompt to paste into the agent"><code>Does the failing test on this branch fail because of the bug it was written for, or for another reason? Prove it from the test output. Change no file.</code></pre>
 <p class="step-title">Expected output</p>
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
@@ -280,7 +281,7 @@ document.documentElement.className += " js";
 </div>
 <p>The point of the goal is that a red test proves a bug only when it fails on the bug's own error. A syntax or compile error is red for the wrong reason.</p>
 <div class="done-check">
-  <p>Done check. The agent said the spoilt test fails for another reason and quoted that error, then the restored test failed with the error above. It passes because the two red runs show different errors, and only the second is the bug's. The put back line <code>git restore tests; git switch main</code> leaves you on <code>main</code> with a clean tree, and the check ends with <code>0</code>.</p>
+  <p>Done check. The agent said the spoilt test fails for another reason and quoted that error, then the restored test failed with the error above. It passes because the two red runs show different errors, and only the second is the bug's. The put back line <code data-copy="Command to paste into PowerShell">git restore tests; git switch main</code> leaves you on <code>main</code> with a clean tree, and the check ends with <code>0</code>.</p>
 </div>
 </section>
 

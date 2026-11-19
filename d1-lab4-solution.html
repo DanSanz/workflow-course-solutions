@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lab 4 solution, problem to queue</title>
 <link rel="stylesheet" href="handout.css">
+<script src="zoom.js"></script>
 <script>
 /* Marks the page as script-enabled so the chooser shows. With scripts off, every variant stays visible. */
 document.documentElement.className += " js";
@@ -60,12 +61,12 @@ document.documentElement.className += " js";
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
-<pre class="cmd"><code>E           ValueError: salary for member M900002 is not a decimal</code></pre>
+<pre><code>E           ValueError: salary for member M900002 is not a decimal</code></pre>
     <p class="note">Ruff and the boundary check pass. Then <code>2 failed, 181 passed</code>, <code>check failed at: unit and module tests</code> and <code>1</code>.</p>
   </div>
   <div class="variant dotnet" data-stack="dotnet">
     <span class="label">.NET</span>
-<pre class="cmd"><code>Expected: typeof(Scheme.Common.Feeds.FeedFormatException)
+<pre><code>Expected: typeof(Scheme.Common.Feeds.FeedFormatException)
 Actual:   typeof(System.FormatException)
 ---- System.FormatException : The input string '41,250.00' was not in a correct format.</code></pre>
     <p class="note">The unit tests pass. The module tests show <code>Failed: 1, Passed: 11</code>, then <code>Check failed at: dotnet test tests/MemberIngestion.ModuleTests</code> and <code>1</code>.</p>
@@ -74,13 +75,13 @@ Actual:   typeof(System.FormatException)
 <p>Good enough: only the new tests fail, with the error type from the log line. The member reference may differ. A failure from an import, a build error or a typo is not a reproduction.</p>
 
 <h2>Step 4. Commit on the branch, back to main</h2>
-<pre class="cmd"><code>git diff main repro/log-line --name-only</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>git diff main repro/log-line --name-only</code></pre>
 <p class="note">After the commit and the switch, it lists your test file and nothing outside <code>tests</code>.</p>
 
-<h2>Step 5. Your lab 3 CI run</h2>
-<p>Routes A and B only. Each push in lab 3 started a run of the <code>check</code> job. In a test on Python, both runs were green and took about 1.5 to 2 minutes. A run that is not green goes to the trainer. You do not fix it in this lab.</p>
+<h2>Step 5. Part 2, your lab 3 CI run before triage</h2>
+<p>Routes A and B only. Each push in lab 3 started a run of the <code>check</code> job.<span data-stack="python"> In a test on Python, both runs were green and took about 1.5 to 2 minutes.</span> A run that is not green goes to the trainer. You do not fix it in this lab.</p>
 
-<h2>Step 6. Part 2, triage</h2>
+<h2>Step 6. Triage</h2>
 <p>The reference result for the first seven issues, in list order, is 5 ready and 1 record. Each ready issue gets a brief under the headings Category, Summary, Current behavior, Desired behavior, Key interfaces, Acceptance criteria and Out of scope.</p>
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
@@ -110,10 +111,10 @@ Actual:   typeof(System.FormatException)
     </table>
   </div>
 </div>
-<p>Good enough: you stopped at 5 ready and 1 record, or after the seventh issue, and you can give the reason for each state. A test learner on .NET put issue 5 in <code>ready-for-human</code>. That is a different result with a reason, and it meets the bar. Issues 1 and 3 are the same kind of mistake. In both, an error the job does not expect ends the run.</p>
+<p>Good enough: you stopped at 5 ready and 1 record, or after the seventh issue, and you can give the reason for each state.<span data-stack="dotnet"> A test learner on .NET put issue 5 in <code>ready-for-human</code>. That is a different result with a reason, and it meets the bar.</span> Issues 1 and 3 are the same kind of mistake. In both, an error the job does not expect ends the run.</p>
 
 <h2>Step 7. Commit what triage wrote</h2>
-<pre class="cmd"><code>git status --short</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>git status --short</code></pre>
 <p class="note">Route C shows <code>?? .scratch/</code> and <code>?? .out-of-scope/</code>. Routes A and B show only <code>?? .out-of-scope/</code>, because the issues live on GitHub. Push it there, so the link in the comment on issue 7 works.</p>
 
 <h2>The artefact you leave in the repo</h2>
@@ -124,15 +125,15 @@ Actual:   typeof(System.FormatException)
 
 <h2>Done check</h2>
 <div class="done-check">
-  <pre class="cmd"><code>git switch repro/log-line; powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
+  <pre class="cmd" data-copy="Command to paste into PowerShell"><code>git switch repro/log-line; powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
   <p class="note">The last line is <code>1</code>.</p>
-  <pre class="cmd"><code>git switch main; powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
+  <pre class="cmd" data-copy="Command to paste into PowerShell"><code>git switch main; powershell -ExecutionPolicy Bypass -File scripts\check.ps1; $LASTEXITCODE</code></pre>
   <p class="note">The last line is <code>0</code>.</p>
-  <pre class="cmd"><code>gh issue list --label ready-for-agent --search sort:created-asc</code></pre>
+  <pre class="cmd" data-copy="Command to paste into PowerShell"><code>gh issue list --label ready-for-agent --search sort:created-asc</code></pre>
   <p class="note">Routes A and B: five issues, the titles of issues 1, 3, 4, 5 and 6.</p>
-  <pre class="cmd"><code>sls "^Status:" .scratch\backlog\issues\*.md -List | group Line -NoElement</code></pre>
+  <pre class="cmd" data-copy="Command to paste into PowerShell"><code>sls "^Status:" .scratch\backlog\issues\*.md -List | group Line -NoElement</code></pre>
   <p class="note">Route C: <code>5 Status: ready-for-agent</code> and <code>2 Status: wontfix</code>, or one <code>wontfix</code> and one <code>needs-info</code>.</p>
-  <pre class="cmd"><code>Get-ChildItem .out-of-scope</code></pre>
+  <pre class="cmd" data-copy="Command to paste into PowerShell"><code>Get-ChildItem .out-of-scope</code></pre>
   <p class="note">One file, such as <code>employer-emails.md</code>.</p>
   <p>Why it passes. The test lives only on the branch, so the check fails there and passes on <code>main</code>. Triage wrote a state for each of the seven issues it took, and one record for the refused feature.</p>
 </div>

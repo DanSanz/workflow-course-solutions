@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lab 2 solution, one-command build and test</title>
 <link rel="stylesheet" href="handout.css">
+<script src="zoom.js"></script>
 <script>
 /* Marks the page as script-enabled so the chooser shows. With scripts off, every variant stays visible. */
 document.documentElement.className += " js";
@@ -43,7 +44,7 @@ document.documentElement.className += " js";
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
-<pre class="cmd"><code>param([switch]$Spark)
+<pre><code>param([switch]$Spark)
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path -Parent $PSScriptRoot)
 $env:PYTHONPATH = "src;vendor;."
@@ -67,7 +68,7 @@ exit 0</code></pre>
   </div>
   <div class="variant dotnet" data-stack="dotnet">
     <span class="label">.NET</span>
-<pre class="cmd"><code>$ErrorActionPreference = 'Stop'
+<pre><code>$ErrorActionPreference = 'Stop'
 Set-Location (Split-Path -Parent $PSScriptRoot)
 
 $steps = @(
@@ -89,7 +90,7 @@ Write-Host 'Check passed.'
 exit 0</code></pre>
   </div>
 </div>
-<p>In Python, the <code>-Spark</code> switch adds the Spark tests. Your agent may add steps, such as a compile step. That is fine while the acceptance tests stay out and the exit code passes through.</p>
+<p><span data-stack="python">In Python, the <code>-Spark</code> switch adds the Spark tests. </span>Your agent may add steps, such as a compile step. That is fine while the acceptance tests stay out and the exit code passes through.</p>
 
 <h2>Step 2. Run it, break a test, restore it</h2>
 <p>You see <code>0</code>, then <code>1</code>, then <code>0</code>.</p>
@@ -103,7 +104,7 @@ exit 0</code></pre>
     <p class="note">Green: <code>Passed: 74</code> for the unit tests, <code>Passed: 11</code> for the module tests, and <code>Check passed.</code> Broken: <code>Failed: 1, Passed: 73</code> and <code>Check failed at: dotnet test tests/MemberIngestion.UnitTests</code>.</p>
   </div>
 </div>
-<p>After the restore, <code>git status --short</code> shows only new files, never a changed test.</p>
+<p>After the restore, <code data-copy="Command to paste into PowerShell">git status --short</code> shows only new files, never a changed test.</p>
 
 <h2>Step 3. Part 2, the setup skill</h2>
 <p>Finished means three files in <code>docs/agents/</code> and an <code>## Agent skills</code> block in <code>AGENTS.md</code>.</p>
@@ -113,7 +114,7 @@ exit 0</code></pre>
   <li><code>domain.md</code> says single context: one <code>GLOSSARY.md</code> at the repo root.</li>
 </ul>
 <p>The skill may suggest <code>CLAUDE.md</code>. The answer is <code>AGENTS.md</code>. On routes A and B, with two remotes, the answer for issues is <code>origin</code>.</p>
-<pre class="cmd"><code>gh label list</code></pre>
+<pre class="cmd" data-copy="Command to paste into PowerShell"><code>gh label list</code></pre>
 <p class="note">Routes A and B only. The list holds the five labels. The skill may have made four of them already.</p>
 
 <h2>Step 4. Part 3, pointers in AGENTS.md</h2>
@@ -121,7 +122,7 @@ exit 0</code></pre>
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
-<pre class="cmd"><code>## Pointers
+<pre><code>## Pointers
 
 - **Build and test**: `powershell -ExecutionPolicy Bypass -File scripts\check.ps1`.
   Use it in place of the README's `python -m pytest`, which fails at collection
@@ -132,7 +133,7 @@ exit 0</code></pre>
   </div>
   <div class="variant dotnet" data-stack="dotnet">
     <span class="label">.NET</span>
-<pre class="cmd"><code>## Pointers
+<pre><code>## Pointers
 
 - **Check**: build and test with `powershell -File scripts\check.ps1`; exit 0 is green.
   The README's `dotnet test` fails: it builds the whole solution, and the
@@ -164,14 +165,14 @@ exit 0</code></pre>
 <div class="variants stack-pair">
   <div class="variant python" data-stack="python">
     <span class="label">Python</span>
-<pre class="cmd"><code>**Employer**:
+<pre><code>**Employer**:
 An organisation that takes part in the scheme, reports its members
 and pays contributions for them.
 _Avoid_: Client, organisation, sender</code></pre>
   </div>
   <div class="variant dotnet" data-stack="dotnet">
     <span class="label">.NET</span>
-<pre class="cmd"><code>**Employer**:
+<pre><code>**Employer**:
 An organisation whose staff are members of the scheme and which sends
 the scheme a member file about them.
 _Avoid_: Client, organisation, sender</code></pre>
@@ -202,9 +203,9 @@ _Avoid_: Client, organisation, sender</code></pre>
 
 <h2>Done check</h2>
 <div class="done-check">
-  <pre class="cmd"><code>"Agent skills","check.ps1","standards","runbook","GLOSSARY" | % { [bool](sls $_ AGENTS.md) }</code></pre>
+  <pre class="cmd" data-copy="Command to paste into PowerShell"><code>"Agent skills","check.ps1","standards","runbook","GLOSSARY" | % { [bool](sls $_ AGENTS.md) }</code></pre>
   <p class="note">Five lines of <code>True</code>.</p>
-  <pre class="cmd"><code>(dir docs\agents).Count; (gc AGENTS.md).Count; (sls "^\*\*" GLOSSARY.md).Count; Test-Path C:\course\before.txt, C:\course\after.txt</code></pre>
+  <pre class="cmd" data-copy="Command to paste into PowerShell"><code>(dir docs\agents).Count; (gc AGENTS.md).Count; (sls "^\*\*" GLOSSARY.md).Count; Test-Path C:\course\before.txt, C:\course\after.txt</code></pre>
   <p class="note">In one finished repo: <code>3</code>, <code>20</code>, <code>12</code>, <code>True</code>, <code>True</code>. The bar is 3, under 40, 10 or more, and two <code>True</code>.</p>
   <p>Why it passes. Each name in the first line appears in <code>AGENTS.md</code>, so each search finds a line. The setup skill wrote three files. Each glossary term starts a line with <code>**</code>, so the count is the number of terms. Both answer files exist outside the repo.</p>
 </div>
